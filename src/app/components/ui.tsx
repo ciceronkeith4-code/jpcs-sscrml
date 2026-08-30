@@ -103,7 +103,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             id={selectId}
             className={cn(
-              "w-full h-9 appearance-none rounded-[10px] border border-slate-200 bg-white px-3.5 pr-9 text-sm font-medium text-slate-900 shadow-2xs",
+              "w-full h-9 appearance-none rounded-[10px] border border-slate-200 bg-white pl-3.5 pr-10 text-sm font-medium text-slate-900 shadow-2xs",
               "hover:border-slate-300 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-150 cursor-pointer",
               error && "border-red-500 focus:ring-red-500/20",
               className
@@ -116,8 +116,8 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               </option>
             ))}
           </select>
-          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-slate-600 transition-colors">
-            <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-slate-600 transition-colors">
+            <svg className="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </div>

@@ -4,9 +4,9 @@ import {
   PieChart, Pie, Cell,
 } from "recharts";
 import { Card, PageHeader, StatCard, EmptyState, Badge } from "../../app/components/ui";
-import { getSemesters, getSubjects, getAwardSettings, getCurriculum, calculateGA, checkAward } from "../../store";
+import { getSemesters, getSubjects, getAwardSettings, getCurriculum, calculateGA, checkAward, getAllUsers } from "../../store";
 import type { User } from "../../types";
-import { ProfileService } from "../../services/profile.service";
+import { GoogleSheetsAuthService } from "../../services/googleSheets.service";
 
 export function AdminDashboardPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -15,22 +15,24 @@ export function AdminDashboardPage() {
   useEffect(() => {
     let active = true;
     const loadUsers = async () => {
-      const result = await ProfileService.fetchAll();
-      if (active && result.success && result.data) setUsers(result.data.filter((u) => u.role === "student"));
+      try {
+        const sheetUsers = await GoogleSheetsAuthService.fetchAccounts();
+        if (active && sheetUsers && sheetUsers.length > 0) {
+          const studentOnly = sheetUsers.filter((u) => u.role !== "admin" && !u.email.includes("admin"));
+          setUsers(studentOnly.length > 0 ? studentOnly : sheetUsers);
+          return;
+        }
+      } catch (err) {
+        console.warn("Google Sheets fetch in AdminDashboard error:", err);
+      }
+
+      const allLocal = getAllUsers().filter((u) => u.role !== "admin");
+      if (active) setUsers(allLocal);
     };
     void loadUsers();
-    const channel = ProfileService.subscribeToAll((updated) => {
-      if (!active) return;
-      setUsers((current) => {
-        const next = current.filter((u) => u.id !== updated.id);
-        return updated.role === "student" ? [...next, updated] : next;
-      });
-    });
-    return () => {
-      active = false;
-      channel();
-    };
   }, []);
+
+
 
   const allData = users.map((u) => {
     const sems = getSemesters(u.id);

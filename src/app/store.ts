@@ -1,14 +1,8 @@
 import type { User, Semester, Subject, CurriculumItem, AwardSetting, Announcement, AwardResult } from "../types";
-import { supabase } from "../services/supabase/supabaseClient";
-import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { APP_CONFIG } from "../constants/app.constants";
-import { ProfileService } from "../services/profile.service";
-import { SemesterService } from "../services/semester.service";
-import { SubjectService } from "../services/subject.service";
-import { CurriculumService } from "../services/curriculum.service";
-import { AnnouncementService } from "../services/announcement.service";
-import { StorageService } from "../services/storage.service";
 import { applyCurriculumSchedule } from "./schedule";
+import { supabase } from "../lib/supabaseClient";
+import { GoogleSheetsAuthService } from "../services/googleSheets.service";
 
 const KEYS = {
   users: "sscr_users",
@@ -72,22 +66,6 @@ export function saveCache<T>(key: string, value: T) {
   }
 }
 
-const isSupabaseConfigured = () => true;
-
-// ── Request Deduplication ──────────────────────────────────────────────────
-const activePromises: Record<string, Promise<any>> = {};
-
-function deduplicate<T>(key: string, fetchFn: () => Promise<T>): Promise<T> {
-  if (activePromises[key]) {
-    return activePromises[key] as Promise<T>;
-  }
-  const promise = fetchFn().finally(() => {
-    delete activePromises[key];
-  });
-  activePromises[key] = promise;
-  return promise;
-}
-
 // ── Seed default data ──────────────────────────────────────────────────────
 
 const DEFAULT_AWARD_SETTINGS: AwardSetting[] = [
@@ -99,98 +77,55 @@ const DEFAULT_AWARD_SETTINGS: AwardSetting[] = [
 const DEFAULT_ANNOUNCEMENTS: Announcement[] = [
   {
     id: "1",
-    title: "Enrollment for Second Semester 2025–2026 is now open",
-    description: "Students may now enroll for the upcoming semester. Please coordinate with your respective departments for pre-enlistment and clearance procedures.",
-    publish_date: "2026-01-10",
-    priority: "high",
-  },
-  {
-    id: "2",
-    title: "Grade submission deadline extended",
-    description: "The deadline for submitting final grades has been moved to January 20, 2026. Faculty members are advised to comply accordingly.",
-    publish_date: "2026-01-08",
-    priority: "normal",
-  },
-  {
-    id: "3",
-    title: "SSCR Academic Excellence Awards Night",
-    description: "The annual Academic Excellence Awards Night will be held on February 14, 2026. Top-performing students will be recognized for their achievements.",
-    publish_date: "2026-01-05",
-    priority: "normal",
-  },
-  {
-    id: "4",
     title: "Official Start of Classes",
-    description: "1st Semester AY 2026-2027",
+    description: "1st Semester AY 2026–2027",
     publish_date: "2026-08-17",
     start_date: "2026-08-17",
     priority: "high",
   },
+  {
+    id: "2",
+    title: "Official Academic Notice",
+    description: "Pre-enlistment and clearing procedures for the upcoming term must be submitted to department chairs.",
+    publish_date: "2026-08-10",
+    priority: "normal",
+  },
+  {
+    id: "3",
+    title: "Sequential Blocking Information",
+    description: "San Sebastian College Recoletos implements the July 18 Revised Blocking model. Grades must satisfy prerequisite course criteria before registration into succeeding course cycles is allowed.",
+    publish_date: "2026-08-05",
+    priority: "normal",
+  },
 ];
 
-const DEFAULT_CURRICULUM: CurriculumItem[] = [
-  { id: "c1", course: "BSIT", year_level: "1", semester: "First Semester", block: "AB", subject_code: "RF1", subject_name: "Recoletos Formation 1", units: 1, schedule_days: "MONDAY", schedule_time: "10:30 - 12:30", room: "Smart Class" },
-  { id: "c2", course: "BSIT", year_level: "1", semester: "First Semester", block: "A", subject_code: "GEC101", subject_name: "Understanding the Self", units: 3, schedule_days: "M-TH", schedule_time: "7:30-9:00", room: "C403" },
-  { id: "c3", course: "BSIT", year_level: "1", semester: "First Semester", block: "A", subject_code: "ITE101", subject_name: "Introduction to Computing", units: 3, schedule_days: "M-TH", schedule_time: "1:00 - 2:30", room: "Smart Class" },
-  { id: "c4", course: "BSIT", year_level: "1", semester: "First Semester", block: "A", subject_code: "THEO 101", subject_name: "Renewal of Christian Faith", units: 3, schedule_days: "M-TH", schedule_time: "2:30 - 4:00", room: "Smart Class" },
-  { id: "c5", course: "BSIT", year_level: "1", semester: "First Semester", block: "B", subject_code: "ITE102", subject_name: "Program Logic Formulation & Computer Prog 1", units: 3, schedule_days: "M/TH/S", schedule_time: "8:30 - 10:30", room: "CLAB 1/OL" },
-  { id: "c6", course: "BSIT", year_level: "1", semester: "First Semester", block: "B", subject_code: "ITP 111", subject_name: "Human Computer Interaction", units: 3, schedule_days: "T/W/F", schedule_time: "10:30 - 12:30", room: "NETLAB" },
-  { id: "c7", course: "BSIT", year_level: "1", semester: "First Semester", block: "B", subject_code: "GEC105", subject_name: "Mathematics in the Modern World", units: 3, schedule_days: "M-TH", schedule_time: "1:00-2:30", room: "C401" },
-  { id: "c8", course: "BSIT", year_level: "1", semester: "First Semester", block: "B", subject_code: "PHE101", subject_name: "Movement Enhancement", units: 2, schedule_days: "M-TH", schedule_time: "2:30-3:30", room: "C403" },
-  { id: "c9", course: "BSIT", year_level: "1", semester: "First Semester", block: "B", subject_code: "CWTS1", subject_name: "Civic Welfare Training Service 1", units: 3, schedule_days: "M-TH", schedule_time: "4:00-5:30", room: "Smart Class" },
-  { id: "c10", course: "BSIT", year_level: "2", semester: "First Semester", block: "A", subject_code: "GEC 102", subject_name: "Readings in Philippine History", units: 3, schedule_days: "M-T-W", schedule_time: "7:30-9:00", room: "SmartClass" },
-  { id: "c11", course: "BSIT", year_level: "2", semester: "First Semester", block: "A", subject_code: "ITE 104", subject_name: "Data Structures & Algorithms", units: 3, schedule_days: "M & TH", schedule_time: "9:00 - 12:00", room: "CLAB3" },
-  { id: "c12", course: "BSIT", year_level: "2", semester: "First Semester", block: "A", subject_code: "ITP 121", subject_name: "Platform Technologies", units: 3, schedule_days: "M-W-TH", schedule_time: "1:00 - 2:30", room: "NETLAB" },
-  { id: "c13", course: "BSIT", year_level: "2", semester: "First Semester", block: "A", subject_code: "PE 103", subject_name: "PATHFit 3: Dance", units: 2, schedule_days: "M-TH", schedule_time: "2:30-3:30", room: "C402" },
-  { id: "c14", course: "BSIT", year_level: "2", semester: "First Semester", block: "A", subject_code: "ITE 108", subject_name: "Quantitative Methods with Modeling & Simulation", units: 3, schedule_days: "M/TH", schedule_time: "3:30 - 5:30", room: "C407" },
-  { id: "c15", course: "BSIT", year_level: "2", semester: "First Semester", block: "B", subject_code: "THEO 103", subject_name: "Mysteries of Christian Faith", units: 3, schedule_days: "M-TH", schedule_time: "7:30 - 9:00", room: "C403" },
-  { id: "c16", course: "BSIT", year_level: "2", semester: "First Semester", block: "B", subject_code: "RF 104", subject_name: "Recoletos Formation 4", units: 1, schedule_days: "TUESDAY", schedule_time: "10:30-12:00", room: "SmartClass" },
-  { id: "c17", course: "BSIT", year_level: "2", semester: "First Semester", block: "B", subject_code: "IT TRACK1", subject_name: "IT Track1 (Cloud Computing)", units: 3, schedule_days: "M-TH", schedule_time: "1:00 - 2:30", room: "510" },
-  { id: "c18", course: "BSIT", year_level: "2", semester: "First Semester", block: "B", subject_code: "ITP 117", subject_name: "Object Oriented Programming", units: 3, schedule_days: "M/TH/S", schedule_time: "3:00 - 5:00", room: "CLAB1" },
-  { id: "c19", course: "BSIT", year_level: "3", semester: "First Semester", block: "AB", subject_code: "ITP128", subject_name: "Capstone 1", units: 3, schedule_days: "F", schedule_time: "2:00 - 3:00", room: "online" },
-  { id: "c20", course: "BSIT", year_level: "3", semester: "First Semester", block: "AB", subject_code: "IPE3", subject_name: "Professional Elective 3 (Cyber Security)", units: 3, schedule_days: "Saturday", schedule_time: "9:00 - 12:00", room: "online" },
-  { id: "c21", course: "BSIT", year_level: "3", semester: "First Semester", block: "AB", subject_code: "IPE 2", subject_name: "Professional Elective 2 (Data Analytics)", units: 3, schedule_days: "Saturday", schedule_time: "3:00 - 6:00", room: "online" },
-  { id: "c22", course: "BSIT", year_level: "3", semester: "First Semester", block: "A", subject_code: "GEC104", subject_name: "Ethics", units: 3, schedule_days: "M-TH", schedule_time: "7:30-9:00", room: "C406" },
-  { id: "c23", course: "BSIT", year_level: "3", semester: "First Semester", block: "A", subject_code: "GEC110", subject_name: "Art Appreciation", units: 3, schedule_days: "M-TH", schedule_time: "9:00-10:30", room: "C403" },
-  { id: "c24", course: "BSIT", year_level: "3", semester: "First Semester", block: "A", subject_code: "REL301", subject_name: "The Mysteries of Christian Faith", units: 3, schedule_days: "M-TH", schedule_time: "10:30-12:00", room: "c406" },
-  { id: "c25", course: "BSIT", year_level: "3", semester: "First Semester", block: "A", subject_code: "ITP113", subject_name: "Information Assurance and Security", units: 3, schedule_days: "M-TH", schedule_time: "1:00 - 2:30", room: "510" },
-  { id: "c26", course: "BSIT", year_level: "3", semester: "First Semester", block: "A", subject_code: "IT TRACK 2", subject_name: "IT TRACK 2", units: 3, schedule_days: "T/W/F", schedule_time: "2:30 - 4:30", room: "NETLAB" },
-  { id: "c27", course: "BSIT", year_level: "3", semester: "First Semester", block: "B", subject_code: "ITP130", subject_name: "Practicum 1", units: 3, schedule_days: "Friday", schedule_time: "1:00 - 3:00", room: "consultation" },
-  { id: "c28", course: "BSIT", year_level: "4", semester: "First Semester", block: "AB", subject_code: "ITP129", subject_name: "Capstone Project 2", units: 3, schedule_days: "T/W/TH", schedule_time: "1:00 - 2:00/ Consultation", room: "510" },
-  { id: "c29", course: "BSIT", year_level: "4", semester: "First Semester", block: "A", subject_code: "ITP131", subject_name: "Practicum 2", units: 3, schedule_days: "F", schedule_time: "Consultation", room: "ONLINE" },
-  { id: "c30", course: "BSIT", year_level: "4", semester: "First Semester", block: "B", subject_code: "ITP123", subject_name: "System Administration & Maintenance", units: 3, schedule_days: "M-F", schedule_time: "9:00 - 10:30", room: "NETLAB" },
-  { id: "c31", course: "BSIT", year_level: "4", semester: "First Semester", block: "B", subject_code: "IT Track 4", subject_name: "IT Track 4 - (Integrative Programming & Technologies)", units: 3, schedule_days: "M/TH/S", schedule_time: "10:30-12:30", room: "CLAB3" },
-  { id: "c32", course: "BSIT", year_level: "4", semester: "First Semester", block: "B", subject_code: "IT Track 5", subject_name: "IT Track 5", units: 3, schedule_days: "M/TH/S", schedule_time: "1:00 - 3:00", room: "C407" }
-];
+import { OFFICIAL_BSIT_CURRICULUM_SEED } from "../services/curriculum.service";
 
-function hydrateLegacyCurriculumSchedule(items: CurriculumItem[]): CurriculumItem[] {
-  const hasScheduleSchema = items.some(
-    (item) =>
-      Object.prototype.hasOwnProperty.call(item, "schedule_days") ||
-      Object.prototype.hasOwnProperty.call(item, "schedule_time") ||
-      Object.prototype.hasOwnProperty.call(item, "room"),
-  );
-  if (hasScheduleSchema) return items;
-
-  return items.map((item) => {
-    const official = DEFAULT_CURRICULUM.find(
-      (candidate) =>
-        candidate.course === item.course &&
-        candidate.subject_code === item.subject_code,
-    );
-    return official
-      ? {
-          ...item,
-          schedule_days: official.schedule_days,
-          schedule_time: official.schedule_time,
-          room: official.room,
-        }
-      : item;
-  });
-}
+const DEFAULT_CURRICULUM: CurriculumItem[] = OFFICIAL_BSIT_CURRICULUM_SEED.map((c) => ({
+  id: `curr_${c.id}`,
+  course: "BSIT",
+  year_level: c.year_level.replace("BSIT ", "").trim(),
+  semester: "First Semester",
+  subject_code: c.subject_code,
+  subject_name: c.subject_description,
+  units: c.total_units,
+  block: (c.block === "A" || c.block === "B" || c.block === "AB") ? c.block : "A",
+  lec_units: c.lec_units,
+  lab_units: c.lab_units,
+  schedule_days: c.days,
+  schedule_time: c.time,
+  room: c.room,
+  faculty: c.faculty || "",
+  mode: c.mode,
+}));
 
 function uid() {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    try {
+      return crypto.randomUUID();
+    } catch {}
+  }
+  return "id_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
 // ── Init Store & Setup Realtime ───────────────────────────────────────────
@@ -201,178 +136,179 @@ export function initStore() {
   if (isInitialized) return;
   isInitialized = true;
 
-  if (!localStorage.getItem(getCacheKey(KEYS.awardSettings))) saveCache(KEYS.awardSettings, DEFAULT_AWARD_SETTINGS);
-  if (!localStorage.getItem(getCacheKey(KEYS.announcements))) saveCache(KEYS.announcements, DEFAULT_ANNOUNCEMENTS);
-  saveCache(KEYS.curriculum, DEFAULT_CURRICULUM);
+  // Clear legacy sheets cache and curriculum
+  localStorage.removeItem(getCacheKey(KEYS.curriculum));
+  localStorage.removeItem("jpcs_sheets_accounts_cache");
 
+  const currentAnnouncements = loadCache<Announcement[]>(KEYS.announcements, []);
+  if (!currentAnnouncements || currentAnnouncements.length === 0) {
+    saveCache(KEYS.announcements, DEFAULT_ANNOUNCEMENTS);
+  }
+  if (!localStorage.getItem(getCacheKey(KEYS.awardSettings))) saveCache(KEYS.awardSettings, DEFAULT_AWARD_SETTINGS);
+
+  // Background fetch all user credentials from Supabase to restore officers and photos
+  supabase
+    .from("user_credentials")
+    .select("email, profile_photo, officer_position, full_name, student_number, course, year_level, role")
+    .then(({ data: allCreds }) => {
+      if (allCreds && allCreds.length > 0) {
+        allCreds.forEach((cred) => {
+          if (cred.email) {
+            if (cred.officer_position && cred.officer_position !== "None") {
+              saveOfficerOverride(cred.email, cred.officer_position);
+              if (cred.student_number) saveOfficerOverride(cred.student_number, cred.officer_position);
+            }
+            if (cred.profile_photo) {
+              savePhotoOverride(cred.email, cred.profile_photo);
+              if (cred.student_number) savePhotoOverride(cred.student_number, cred.profile_photo);
+            }
+            if (cred.year_level || cred.course || cred.full_name) {
+              const details: Partial<User> = {};
+              if (cred.year_level) details.year_level = String(cred.year_level);
+              if (cred.course) details.course = cred.course;
+              if (cred.full_name) details.full_name = cred.full_name;
+              if (cred.student_number) details.student_number = cred.student_number;
+              saveProfileOverride(cred.email, details);
+              if (cred.student_number) saveProfileOverride(cred.student_number, details);
+            }
+          }
+        });
+      }
+    })
+    .catch(() => {});
+
+  // Refresh active session from Supabase & Google Sheets without wiping local data
+  const currentSession = loadCache<User | null>(KEYS.session, null);
+  if (currentSession?.email) {
+    const cleanEmail = currentSession.email.trim().toLowerCase();
+    const overrides = getOfficerOverrides();
+    const photoOverrides = getPhotoOverrides();
+    const cleanNo = (currentSession.student_number || "").toLowerCase();
+    const assignedPos = overrides[cleanEmail] || (cleanNo ? overrides[cleanNo] : undefined);
+    const assignedPhoto = photoOverrides[cleanEmail] || (cleanNo ? photoOverrides[cleanNo] : undefined);
+
+    supabase
+      .from("user_credentials")
+      .select("profile_photo, officer_position, full_name, student_number, course, year_level, role")
+      .eq("email", cleanEmail)
+      .maybeSingle()
+      .then(async ({ data: dbUser }) => {
+        let matched: User | null = null;
+        try {
+          matched = await GoogleSheetsAuthService.findUserByEmail(cleanEmail);
+        } catch {}
+
+        const latestPhoto = assignedPhoto || dbUser?.profile_photo || currentSession.profile_photo || "";
+        const latestOfficerPos = assignedPos !== undefined
+          ? assignedPos
+          : (dbUser?.officer_position && dbUser.officer_position !== "None"
+              ? dbUser.officer_position
+              : "None");
+
+        const updated: User = {
+          ...currentSession,
+          profile_photo: latestPhoto,
+          officer_position: latestOfficerPos,
+          full_name: dbUser?.full_name || matched?.full_name || currentSession.full_name,
+          student_number: dbUser?.student_number || matched?.student_number || currentSession.student_number,
+          year_level: dbUser?.year_level || matched?.year_level || currentSession.year_level,
+          course: dbUser?.course || matched?.course || currentSession.course,
+          role: (dbUser?.role as any) || currentSession.role,
+        };
+
+        saveCache(KEYS.session, updated);
+        window.dispatchEvent(new Event("sscr_store_synced"));
+      })
+      .catch(() => {});
+  }
 }
 
-// ── Background Sync ────────────────────────────────────────────────────────
+// ── Academic Data Sync ────────────────────────────────────────────────────
+
+export async function syncUserAcademicData(user: User) {
+  try {
+    const studentNo = (user.student_number || "").trim();
+    const userId = (user.id || "").trim();
+
+    // Build filter
+    const orFilter = studentNo
+      ? `user_id.eq.${userId},student_number.eq.${studentNo}`
+      : `user_id.eq.${userId}`;
+
+    // 1. Fetch semesters for this student from Supabase
+    const { data: semsData, error: semsErr } = await supabase
+      .from("semesters")
+      .select("*")
+      .or(orFilter);
+
+    const localSems = loadCache<Semester[]>(KEYS.semesters, []);
+
+    if (!semsErr && semsData && semsData.length > 0) {
+      const mergedMap = new Map<string, Semester>();
+      localSems.forEach((s) => mergedMap.set(s.id, s));
+      semsData.forEach((s) => mergedMap.set(s.id, s));
+      saveCache(KEYS.semesters, Array.from(mergedMap.values()));
+    } else if (localSems.length > 0) {
+      // Push local semesters to Supabase so they persist permanently
+      const mySems = localSems.filter((s) => s.user_id === userId || (studentNo && s.student_number === studentNo));
+      if (mySems.length > 0) {
+        void supabase.from("semesters").upsert(mySems, { onConflict: "id" });
+      }
+    }
+
+    // 2. Fetch subjects/grades for this student from Supabase
+    const { data: subsData, error: subsErr } = await supabase
+      .from("subjects")
+      .select("*")
+      .or(orFilter);
+
+    const localSubs = loadCache<Subject[]>(KEYS.subjects, []);
+
+    if (!subsErr && subsData && subsData.length > 0) {
+      const mergedMap = new Map<string, Subject>();
+      localSubs.forEach((s) => mergedMap.set(s.id, s));
+      subsData.forEach((s) => mergedMap.set(s.id, s));
+      saveCache(KEYS.subjects, Array.from(mergedMap.values()));
+    } else if (localSubs.length > 0) {
+      // Push local subjects to Supabase so they persist permanently
+      const mySubs = localSubs.filter((s) => s.user_id === userId || (studentNo && s.student_number === studentNo));
+      if (mySubs.length > 0) {
+        void supabase.from("subjects").upsert(mySubs, { onConflict: "id" });
+      }
+    }
+
+    // 3. Fetch announcements from Supabase
+    const { data: annData, error: annErr } = await supabase
+      .from("announcements")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!annErr && annData && annData.length > 0) {
+      saveCache(KEYS.announcements, annData);
+    } else {
+      saveCache(KEYS.announcements, DEFAULT_ANNOUNCEMENTS);
+    }
+
+    // 4. Fetch award settings from Supabase
+    const { data: awardsData, error: awardsErr } = await supabase
+      .from("award_settings")
+      .select("*");
+
+    if (!awardsErr && awardsData && awardsData.length > 0) {
+      saveCache(KEYS.awardSettings, awardsData);
+    }
+
+    window.dispatchEvent(new Event("sscr_store_synced"));
+  } catch (err) {
+    console.warn("Academic data sync notice:", err);
+  }
+}
 
 export async function syncFromSupabase() {
-  if (!isSupabaseConfigured()) return;
-  await deduplicate("sync", async () => {
-    try {
-      const [rUsers, rSems, rSubs, rCurr, rAnn] = await Promise.all([
-        ProfileService.fetchAll(),
-        SemesterService.fetchAll(),
-        SubjectService.fetchAll(),
-        CurriculumService.fetchAll(),
-        AnnouncementService.fetchAll(),
-      ]);
-
-      // Fetch award_settings directly from Supabase
-      const { data: awardData, error: awardErr } = await supabase.from("award_settings").select("*");
-      const awards = awardData || [];
-
-      let changed = false;
-
-      if (rUsers.success && rUsers.data) {
-        saveCache(KEYS.users, rUsers.data);
-        changed = true;
-      }
-      if (rSems.success && rSems.data) {
-        saveCache(KEYS.semesters, rSems.data);
-        changed = true;
-      }
-      if (rSubs.success && rSubs.data) {
-        saveCache(KEYS.subjects, rSubs.data);
-        changed = true;
-      }
-      if (rCurr.success && rCurr.data) {
-        saveCache(KEYS.curriculum, hydrateLegacyCurriculumSchedule(rCurr.data));
-        changed = true;
-      }
-      if (awards.length) {
-        saveCache(KEYS.awardSettings, awards);
-        changed = true;
-      }
-      if (rAnn.success && rAnn.data) {
-        saveCache(KEYS.announcements, rAnn.data);
-        changed = true;
-      }
-
-      const session = getSession();
-      if (
-        session?.role === "student" &&
-        rSems.success &&
-        rSems.data &&
-        rSubs.success &&
-        rSubs.data &&
-        rCurr.success &&
-        rCurr.data
-      ) {
-        const provisioned = await ensureCurrentAcademicRecords(
-          session,
-          rSems.data,
-          rSubs.data,
-          rCurr.data,
-        );
-        if (provisioned) changed = true;
-      }
-
-      if (changed) {
-        if (session && rUsers.data) {
-          const fresh = rUsers.data.find((u) => u.id === session.id);
-          if (fresh) saveCache(KEYS.session, fresh);
-        }
-        window.dispatchEvent(new Event("sscr_store_synced"));
-      }
-    } catch (err) {
-      console.error("Supabase sync query error:", err);
-    }
-  });
-}
-
-async function ensureCurrentAcademicRecords(
-  user: User,
-  semesters: Semester[],
-  subjects: Subject[],
-  curriculum: CurriculumItem[],
-): Promise<boolean> {
-  if (!user.year_level || user.year_level === "Irregular") return false;
-
-  const today = new Date();
-  const month = today.getMonth() + 1;
-  const firstSemester = month >= 6;
-  const academicYearStart = firstSemester ? today.getFullYear() : today.getFullYear() - 1;
-  const academicYear = `${academicYearStart}–${academicYearStart + 1}`;
-  const semesterName = firstSemester ? "First Semester" : "Second Semester";
-
-  const matchingCurriculum = curriculum.filter(
-    (item) =>
-      item.course === user.course &&
-      String(item.year_level) === String(user.year_level) &&
-      item.semester === semesterName,
-  );
-  if (!matchingCurriculum.length) return false;
-
-  let semester = semesters.find(
-    (item) =>
-      item.user_id === user.id &&
-      item.semester === semesterName &&
-      item.academic_year.replace("-", "–") === academicYear,
-  );
-  let changed = false;
-
-  if (!semester) {
-    semester = {
-      id: `auto_${user.id}_${academicYearStart}_${firstSemester ? "1" : "2"}`,
-      user_id: user.id,
-      academic_year: academicYear,
-      semester: semesterName,
-    };
-    const semesterResult = await SemesterService.add(semester);
-    if (!semesterResult.success) {
-      console.warn("Automatic semester creation failed:", semesterResult.error);
-      return false;
-    }
-    semesters.push(semester);
-    saveCache(KEYS.semesters, semesters);
-    changed = true;
+  const session = getSession();
+  if (session) {
+    await syncUserAcademicData(session);
   }
-
-  const existingCodes = new Set(
-    subjects
-      .filter((subject) => subject.semester_id === semester.id)
-      .map((subject) => subject.subject_code.trim().toLowerCase()),
-  );
-  const missingSubjects: Subject[] = matchingCurriculum
-    .filter((item) => !existingCodes.has(item.subject_code.trim().toLowerCase()))
-    .map((item) => {
-      const [scheduleStart, scheduleEnd] = (item.schedule_time || "")
-        .split(/\s*-\s*/, 2)
-        .map((value) => value.trim());
-
-      return {
-        id: `auto_${semester.id}_${item.id}`,
-        semester_id: semester.id,
-        subject_code: item.subject_code,
-        subject_name: item.subject_name,
-        units: item.units,
-        grade: 0,
-        status: "Currently Taking",
-        course: item.course,
-        year_level: String(item.year_level),
-        schedule_day: item.schedule_days,
-        schedule_start: scheduleStart || undefined,
-        schedule_end: scheduleEnd || undefined,
-        room: item.room,
-      };
-    });
-
-  if (missingSubjects.length) {
-    const subjectResult = await SubjectService.bulkAdd(missingSubjects);
-    if (!subjectResult.success) {
-      console.warn("Automatic subject creation failed:", subjectResult.error);
-      return changed;
-    }
-    subjects.push(...missingSubjects);
-    saveCache(KEYS.subjects, subjects);
-    changed = true;
-  }
-
-  return changed;
 }
 
 // ── Auth & Profile Actions ────────────────────────────────────────────────
@@ -406,92 +342,53 @@ export function clearSession() {
   if (currentSession) {
     setOnlineStatus(currentSession.id, false);
   }
-  [
-    KEYS.session,
-    KEYS.users,
-    KEYS.semesters,
-    KEYS.subjects,
-    KEYS.curriculum,
-    KEYS.awardSettings,
-    KEYS.announcements,
-  ].forEach((key) => localStorage.removeItem(getCacheKey(key)));
+  // Only remove active login session so student academic data, officers, and settings persist safely across sessions
+  localStorage.removeItem(getCacheKey(KEYS.session));
   window.dispatchEvent(new Event("sscr_store_synced"));
 }
 
-export async function refreshSessionFromSupabase(supabaseUser?: SupabaseUser): Promise<User | null> {
-  if (!isSupabaseConfigured()) return getSession();
-
+export async function refreshSessionFromSupabase(supabaseUser?: any): Promise<User | null> {
   const currentUser = supabaseUser || (await supabase.auth.getUser()).data.user;
-  if (!currentUser?.id || !currentUser.email) return null;
-
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", currentUser.id)
-    .single();
-
-  if (error || !profile) {
-    const now = new Date().toISOString();
-    const isDefaultAdmin = currentUser.email.trim().toLowerCase() === "admin@sscrmnl.edu.ph";
-    
-    // SQL compatible insert payload
-    const newProfileDb = {
-      id: currentUser.id,
-      full_name: currentUser.user_metadata?.full_name || currentUser.email.split("@")[0],
-      student_number: "",
-      course: "BSIT",
-      year_level: "1",
-      role: isDefaultAdmin ? "admin" : "student",
-      email: currentUser.email.trim().toLowerCase(),
-      status: "active",
-      mustChangePassword: false,
-    };
-    
-    const { error: insertError } = await supabase
-      .from("profiles")
-      .upsert(newProfileDb);
-
-    if (insertError) {
-      console.error("Error creating profile in Supabase:", insertError);
-      return null;
-    }
-
-    const sessionUser: User = {
-      ...newProfileDb,
-      uid: currentUser.id,
-      verified: true,
-      provider: "email",
-      created_at: now,
-      updated_at: now,
-    };
-
-    saveCache(KEYS.session, sessionUser);
-    await syncFromSupabase();
-    return sessionUser;
+  if (!currentUser?.id || !currentUser.email) {
+    return getSession();
   }
 
-  const mappedProfile = { 
-    id: profile.id, 
-    uid: profile.id,
-    full_name: profile.full_name,
-    student_number: profile.student_number || "",
-    course: profile.course || "BSIT",
-    year_level: profile.year_level || "1",
-    role: profile.role,
-    officer_position: profile.officer_position || "",
-    profile_photo: profile.profile_photo || "",
-    action_photo: profile.action_photo || "",
-    email: profile.email,
-    verified: true,
-    status: profile.status,
-    mustChangePassword: profile.mustChangePassword,
-    created_at: profile.created_at,
-    updated_at: profile.updated_at,
-  } as User;
+  const normalizedEmail = currentUser.email.trim().toLowerCase();
 
-  saveCache(KEYS.session, mappedProfile);
-  await syncFromSupabase();
-  return mappedProfile;
+  // Search Google Sheets for authenticated email
+  let matchedStudent: User | null = null;
+  try {
+    matchedStudent = await GoogleSheetsAuthService.findUserByEmail(normalizedEmail);
+  } catch (err) {
+    console.warn("Google Sheets session refresh error:", err);
+  }
+
+  if (!matchedStudent) {
+    return getSession();
+  }
+
+  const isAdmin = normalizedEmail.includes("admin") || matchedStudent.role === "admin";
+  const isFaculty = matchedStudent.role === "faculty";
+  const resolvedRole = isAdmin ? "admin" : isFaculty ? "faculty" : "student";
+
+  const sessionUser: User = {
+    id: currentUser.id,
+    uid: currentUser.id,
+    full_name: matchedStudent.full_name,
+    student_number: matchedStudent.student_number || `SSCR-${currentUser.id.slice(0, 6)}`,
+    course: matchedStudent.course || "BSIT",
+    year_level: matchedStudent.year_level || "1",
+    role: resolvedRole as any,
+    email: normalizedEmail,
+    verified: true,
+    status: "active",
+    mustChangePassword: false,
+    officer_position: matchedStudent.officer_position || "None",
+  };
+
+  saveCache(KEYS.session, sessionUser);
+  await syncUserAcademicData(sessionUser);
+  return sessionUser;
 }
 
 export function logout() {
@@ -500,12 +397,60 @@ export function logout() {
 }
 
 
+const OFFICER_OVERRIDES_KEY = "jpcs_officer_assignments";
+const PHOTO_OVERRIDES_KEY = "jpcs_photo_assignments";
+const PROFILE_OVERRIDES_KEY = "jpcs_profile_assignments";
+
+export function getOfficerOverrides(): Record<string, string> {
+  return loadCache<Record<string, string>>(OFFICER_OVERRIDES_KEY, {});
+}
+
+export function saveOfficerOverride(emailOrStudentNumber: string, position: string) {
+  const overrides = getOfficerOverrides();
+  const cleanKey = emailOrStudentNumber.trim().toLowerCase();
+  if (!position || position === "None" || position === "") {
+    delete overrides[cleanKey];
+  } else {
+    overrides[cleanKey] = position;
+  }
+  saveCache(OFFICER_OVERRIDES_KEY, overrides);
+  window.dispatchEvent(new Event("sscr_store_synced"));
+}
+
+export function getPhotoOverrides(): Record<string, string> {
+  return loadCache<Record<string, string>>(PHOTO_OVERRIDES_KEY, {});
+}
+
+export function savePhotoOverride(emailOrStudentNumber: string, photoUrl: string) {
+  const photos = getPhotoOverrides();
+  const cleanKey = emailOrStudentNumber.trim().toLowerCase();
+  if (!photoUrl) {
+    delete photos[cleanKey];
+  } else {
+    photos[cleanKey] = photoUrl;
+  }
+  saveCache(PHOTO_OVERRIDES_KEY, photos);
+  window.dispatchEvent(new Event("sscr_store_synced"));
+}
+
+export function getProfileOverrides(): Record<string, Partial<User>> {
+  return loadCache<Record<string, Partial<User>>>(PROFILE_OVERRIDES_KEY, {});
+}
+
+export function saveProfileOverride(emailOrStudentNumber: string, details: Partial<User>) {
+  const overrides = getProfileOverrides();
+  const cleanKey = emailOrStudentNumber.trim().toLowerCase();
+  overrides[cleanKey] = { ...(overrides[cleanKey] || {}), ...details };
+  saveCache(PROFILE_OVERRIDES_KEY, overrides);
+  window.dispatchEvent(new Event("sscr_store_synced"));
+}
+
 export function updateProfile(id: string, data: Partial<User>) {
   const users = loadCache<User[]>(KEYS.users, []);
   let targetUser: User | null = null;
 
   const updated = users.map((u) => {
-    if (u.id === id || (u.student_number && data.student_number && u.student_number === data.student_number)) {
+    if (u.id === id || (u.email && data.email && u.email.toLowerCase() === data.email.toLowerCase()) || (u.student_number && data.student_number && u.student_number === data.student_number)) {
       const merged = { ...u, ...data };
       targetUser = merged;
       return merged;
@@ -519,35 +464,66 @@ export function updateProfile(id: string, data: Partial<User>) {
       full_name: data.full_name || "Student",
       student_number: data.student_number || "",
       course: data.course || "BSIT",
-      year_level: data.year_level || "1",
+      year_level: data.year_level ? String(data.year_level) : "1",
       role: data.role || "student",
       email: data.email || "",
       verified: true,
+      officer_position: data.officer_position || "None",
+      profile_photo: data.profile_photo || "",
     };
     updated.push(targetUser);
   }
 
   saveCache(KEYS.users, updated);
 
+  if (data.profile_photo !== undefined) {
+    if (targetUser.email) savePhotoOverride(targetUser.email, data.profile_photo);
+    if (targetUser.student_number) savePhotoOverride(targetUser.student_number, data.profile_photo);
+  }
+
+  if (data.officer_position !== undefined) {
+    if (targetUser.email) saveOfficerOverride(targetUser.email, data.officer_position);
+    if (targetUser.student_number) saveOfficerOverride(targetUser.student_number, data.officer_position);
+  }
+
+  if (data.year_level !== undefined || data.course !== undefined || data.full_name !== undefined || data.student_number !== undefined) {
+    const patch: Partial<User> = {};
+    if (data.year_level !== undefined) patch.year_level = String(data.year_level);
+    if (data.course !== undefined) patch.course = data.course;
+    if (data.full_name !== undefined) patch.full_name = data.full_name;
+    if (data.student_number !== undefined) patch.student_number = data.student_number;
+    if (targetUser.email) saveProfileOverride(targetUser.email, patch);
+    if (targetUser.student_number) saveProfileOverride(targetUser.student_number, patch);
+  }
+
+  // Sync to Supabase user_credentials in background with complete fields
+  if (targetUser.email) {
+    const userEmail = targetUser.email.toLowerCase();
+    void supabase
+      .from("user_credentials")
+      .upsert(
+        {
+          email: userEmail,
+          profile_photo: targetUser.profile_photo || "",
+          officer_position: targetUser.officer_position || "None",
+          full_name: targetUser.full_name || "Student",
+          student_number: targetUser.student_number || "",
+          course: targetUser.course || "BSIT",
+          year_level: String(targetUser.year_level || "1"),
+          role: targetUser.role || "student",
+          password_hash: "sscrmnlitdepartment",
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "email" }
+      );
+  }
+
   const session = getSession();
-  if (session && session.id === id) {
+  if (session && (session.id === id || (session.email && targetUser.email && session.email.toLowerCase() === targetUser.email.toLowerCase()))) {
     saveCache(KEYS.session, { ...session, ...data });
   }
 
-  if (isSupabaseConfigured()) {
-    ProfileService.update(id, data).then((res) => {
-      if (!res.success) {
-        console.warn("Profile update warning in Supabase:", res.error);
-      }
-      // Always re-sync from DB to confirm changes persisted
-      syncFromSupabase().catch(console.error);
-    }).catch(() => {
-      syncFromSupabase().catch(console.error);
-    });
-  } else {
-    window.dispatchEvent(new Event("sscr_store_synced"));
-  }
-
+  window.dispatchEvent(new Event("sscr_store_synced"));
   return targetUser;
 }
 
@@ -561,21 +537,10 @@ export function addSemester(data: Omit<Semester, "id">): Semester {
   const all = loadCache<Semester[]>(KEYS.semesters, []);
   const sem: Semester = { ...data, id: uid() };
   saveCache(KEYS.semesters, [...all, sem]);
+  window.dispatchEvent(new Event("sscr_store_synced"));
 
-  if (isSupabaseConfigured()) {
-    SemesterService.add(sem).then((res) => {
-      if (!res.success) {
-        console.warn("Semester add warning in Supabase:", res.error);
-        saveCache(KEYS.semesters, all);
-        window.dispatchEvent(new Event("sscr_store_synced"));
-      }
-    }).catch((err) => {
-      console.warn("Semester add error in Supabase:", err);
-      saveCache(KEYS.semesters, all);
-      window.dispatchEvent(new Event("sscr_store_synced"));
-    });
-  }
-
+  // Background Supabase sync
+  void supabase.from("semesters").upsert([sem], { onConflict: "id" });
   return sem;
 }
 
@@ -596,16 +561,12 @@ export async function createSemester(
   }
 
   const semester: Semester = { ...data, id: uid() };
-  if (isSupabaseConfigured()) {
-    const result = await SemesterService.add(semester);
-    if (!result.success) {
-      return { success: false, data: null, error: result.error || "Unable to create semester." };
-    }
-  }
-
   const current = loadCache<Semester[]>(KEYS.semesters, []);
   saveCache(KEYS.semesters, [...current.filter((item) => item.id !== semester.id), semester]);
   window.dispatchEvent(new Event("sscr_store_synced"));
+
+  // Background Supabase sync
+  void supabase.from("semesters").upsert([semester], { onConflict: "id" });
   return { success: true, data: semester };
 }
 
@@ -633,52 +594,42 @@ export async function editSemester(
     };
   }
 
-  if (isSupabaseConfigured()) {
-    const result = await SemesterService.update(id, data);
-    if (!result.success) {
-      return { success: false, error: result.error || "Unable to update semester." };
-    }
-  }
-
+  const updatedSem = { ...target, ...data };
   saveCache(KEYS.semesters, current.map((semester) => (
-    semester.id === id ? { ...semester, ...data } : semester
+    semester.id === id ? updatedSem : semester
   )));
   window.dispatchEvent(new Event("sscr_store_synced"));
+
+  // Background Supabase sync
+  void supabase.from("semesters").update({
+    academic_year: updatedSem.academic_year,
+    semester: updatedSem.semester,
+  }).eq("id", id);
+
   return { success: true };
 }
 
 export async function removeSemester(id: string): Promise<{ success: boolean; error?: string }> {
-  if (isSupabaseConfigured()) {
-    const result = await SemesterService.delete(id);
-    if (!result.success) {
-      return { success: false, error: result.error || "Unable to delete semester." };
-    }
-  }
-
   const semesters = loadCache<Semester[]>(KEYS.semesters, []);
   const subjects = loadCache<Subject[]>(KEYS.subjects, []);
   saveCache(KEYS.semesters, semesters.filter((semester) => semester.id !== id));
   saveCache(KEYS.subjects, subjects.filter((subject) => subject.semester_id !== id));
   window.dispatchEvent(new Event("sscr_store_synced"));
+
+  // Background Supabase delete
+  void supabase.from("semesters").delete().eq("id", id);
+  void supabase.from("subjects").delete().eq("semester_id", id);
+
   return { success: true };
 }
 
 export function updateSemester(id: string, data: Partial<Semester>) {
   const all = loadCache<Semester[]>(KEYS.semesters, []);
-  saveCache(KEYS.semesters, all.map((s) => (s.id === id ? { ...s, ...data } : s)));
+  const updated = all.map((s) => (s.id === id ? { ...s, ...data } : s));
+  saveCache(KEYS.semesters, updated);
+  window.dispatchEvent(new Event("sscr_store_synced"));
 
-  if (isSupabaseConfigured()) {
-    SemesterService.update(id, data).then((res) => {
-      if (!res.success) {
-        console.warn("Semester update warning in Supabase:", res.error);
-        saveCache(KEYS.semesters, all);
-        window.dispatchEvent(new Event("sscr_store_synced"));
-      }
-    }).catch(() => {
-      saveCache(KEYS.semesters, all);
-      window.dispatchEvent(new Event("sscr_store_synced"));
-    });
-  }
+  void supabase.from("semesters").update(data).eq("id", id);
 }
 
 export function deleteSemester(id: string) {
@@ -687,21 +638,10 @@ export function deleteSemester(id: string) {
 
   saveCache(KEYS.semesters, allSems.filter((s) => s.id !== id));
   saveCache(KEYS.subjects, allSubs.filter((s) => s.semester_id !== id));
+  window.dispatchEvent(new Event("sscr_store_synced"));
 
-  if (isSupabaseConfigured()) {
-    SemesterService.delete(id).then((res) => {
-      if (!res.success) {
-        console.warn("Semester delete warning in Supabase:", res.error);
-        saveCache(KEYS.semesters, allSems);
-        saveCache(KEYS.subjects, allSubs);
-        window.dispatchEvent(new Event("sscr_store_synced"));
-      }
-    }).catch(() => {
-      saveCache(KEYS.semesters, allSems);
-      saveCache(KEYS.subjects, allSubs);
-      window.dispatchEvent(new Event("sscr_store_synced"));
-    });
-  }
+  void supabase.from("semesters").delete().eq("id", id);
+  void supabase.from("subjects").delete().eq("semester_id", id);
 }
 
 // ── Subjects ──────────────────────────────────────────────────────────────
@@ -739,57 +679,59 @@ export function addSubject(data: Omit<Subject, "id">): Subject {
   const all = loadCache<Subject[]>(KEYS.subjects, []);
   const sub: Subject = { ...data, id: uid() };
   saveCache(KEYS.subjects, [...all, sub]);
+  window.dispatchEvent(new Event("sscr_store_synced"));
 
-  if (isSupabaseConfigured()) {
-    SubjectService.add(sub).then((res) => {
-      if (!res.success) {
-        console.warn("Subject add warning in Supabase:", res.error);
-        saveCache(KEYS.subjects, all);
-        window.dispatchEvent(new Event("sscr_store_synced"));
-      }
-    }).catch(() => {
-      saveCache(KEYS.subjects, all);
-      window.dispatchEvent(new Event("sscr_store_synced"));
-    });
-  }
+  // Background Supabase sync
+  void supabase.from("subjects").upsert([
+    {
+      id: sub.id,
+      semester_id: sub.semester_id,
+      user_id: sub.user_id || "",
+      student_number: sub.student_number || "",
+      subject_code: sub.subject_code,
+      subject_name: sub.subject_name,
+      units: Number(sub.units) || 3,
+      grade: Number(sub.grade) || 0,
+      status: sub.status || "Currently Taking",
+      room: sub.room || "",
+      schedule_day: sub.schedule_day || sub.schedule_days || "",
+      schedule_start: sub.schedule_start || "",
+      schedule_end: sub.schedule_end || "",
+    },
+  ], { onConflict: "id" });
 
   return sub;
 }
 
 export function updateSubject(id: string, data: Partial<Subject>) {
   const all = loadCache<Subject[]>(KEYS.subjects, []);
-  saveCache(KEYS.subjects, all.map((s) => (s.id === id ? { ...s, ...data } : s)));
+  const updated = all.map((s) => (s.id === id ? { ...s, ...data } : s));
+  saveCache(KEYS.subjects, updated);
+  window.dispatchEvent(new Event("sscr_store_synced"));
 
-  if (isSupabaseConfigured()) {
-    SubjectService.update(id, data).then((res) => {
-      if (!res.success) {
-        console.warn("Subject update warning in Supabase:", res.error);
-        saveCache(KEYS.subjects, all);
-        window.dispatchEvent(new Event("sscr_store_synced"));
-      }
-    }).catch(() => {
-      saveCache(KEYS.subjects, all);
-      window.dispatchEvent(new Event("sscr_store_synced"));
-    });
+  const payload: any = {};
+  if (data.subject_code !== undefined) payload.subject_code = data.subject_code;
+  if (data.subject_name !== undefined) payload.subject_name = data.subject_name;
+  if (data.units !== undefined) payload.units = Number(data.units);
+  if (data.grade !== undefined) payload.grade = Number(data.grade);
+  if (data.status !== undefined) payload.status = data.status;
+  if (data.room !== undefined) payload.room = data.room;
+  if (data.schedule_day !== undefined || data.schedule_days !== undefined) {
+    payload.schedule_day = data.schedule_day || data.schedule_days;
   }
+  if (data.schedule_start !== undefined) payload.schedule_start = data.schedule_start;
+  if (data.schedule_end !== undefined) payload.schedule_end = data.schedule_end;
+  payload.updated_at = new Date().toISOString();
+
+  void supabase.from("subjects").update(payload).eq("id", id);
 }
 
 export function deleteSubject(id: string) {
   const all = loadCache<Subject[]>(KEYS.subjects, []);
   saveCache(KEYS.subjects, all.filter((s) => s.id !== id));
+  window.dispatchEvent(new Event("sscr_store_synced"));
 
-  if (isSupabaseConfigured()) {
-    SubjectService.delete(id).then((res) => {
-      if (!res.success) {
-        console.warn("Subject delete warning in Supabase:", res.error);
-        saveCache(KEYS.subjects, all);
-        window.dispatchEvent(new Event("sscr_store_synced"));
-      }
-    }).catch(() => {
-      saveCache(KEYS.subjects, all);
-      window.dispatchEvent(new Event("sscr_store_synced"));
-    });
-  }
+  void supabase.from("subjects").delete().eq("id", id);
 }
 
 // ── Calculations & Awards ─────────────────────────────────────────────────
@@ -835,7 +777,7 @@ export function checkAward(ga: number, subjects: Subject[], settings: AwardSetti
 // ── Curriculum ────────────────────────────────────────────────────────────
 
 export function getCurriculum(filters?: { course?: string; year_level?: string; semester?: string }): CurriculumItem[] {
-  let items = loadCache<CurriculumItem[]>(KEYS.curriculum, []);
+  let items = loadCache<CurriculumItem[]>(KEYS.curriculum, DEFAULT_CURRICULUM);
   if (filters?.course) items = items.filter((i) => i.course === filters.course);
   if (filters?.year_level) {
     items = items.filter((i) => String(i.year_level) === String(filters.year_level));
@@ -848,14 +790,7 @@ export function addCurriculumItem(data: Omit<CurriculumItem, "id">): CurriculumI
   const all = loadCache<CurriculumItem[]>(KEYS.curriculum, []);
   const item: CurriculumItem = { ...data, id: uid() };
   saveCache(KEYS.curriculum, [...all, item]);
-
-  if (isSupabaseConfigured()) {
-    CurriculumService.add(item).catch(() => {
-      saveCache(KEYS.curriculum, all);
-      window.dispatchEvent(new Event("sscr_store_synced"));
-    });
-  }
-
+  window.dispatchEvent(new Event("sscr_store_synced"));
   return item;
 }
 
@@ -865,22 +800,6 @@ export async function updateCurriculumItem(
 ): Promise<{ success: boolean; error?: string }> {
   const all = loadCache<CurriculumItem[]>(KEYS.curriculum, []);
   saveCache(KEYS.curriculum, all.map((i) => (i.id === id ? { ...i, ...data } : i)));
-
-  if (isSupabaseConfigured()) {
-    const result = await CurriculumService.update(id, data);
-    if (!result.success || !result.data) {
-      saveCache(KEYS.curriculum, all);
-      window.dispatchEvent(new Event("sscr_store_synced"));
-      return { success: false, error: result.error || "Unable to update the curriculum schedule." };
-    }
-    saveCache(
-      KEYS.curriculum,
-      loadCache<CurriculumItem[]>(KEYS.curriculum, []).map((item) =>
-        item.id === id ? result.data! : item,
-      ),
-    );
-  }
-
   window.dispatchEvent(new Event("sscr_store_synced"));
   return { success: true };
 }
@@ -888,13 +807,7 @@ export async function updateCurriculumItem(
 export function deleteCurriculumItem(id: string) {
   const all = loadCache<CurriculumItem[]>(KEYS.curriculum, []);
   saveCache(KEYS.curriculum, all.filter((i) => i.id !== id));
-
-  if (isSupabaseConfigured()) {
-    CurriculumService.delete(id).catch(() => {
-      saveCache(KEYS.curriculum, all);
-      window.dispatchEvent(new Event("sscr_store_synced"));
-    });
-  }
+  window.dispatchEvent(new Event("sscr_store_synced"));
 }
 
 // ── Award Settings ────────────────────────────────────────────────────────
@@ -904,25 +817,8 @@ export function getAwardSettings(): AwardSetting[] {
 }
 
 export function saveAwardSettings(settings: AwardSetting[]) {
-  const previous = getAwardSettings();
   saveCache(KEYS.awardSettings, settings);
-
-  if (isSupabaseConfigured()) {
-    supabase
-      .from("award_settings")
-      .upsert(settings)
-      .then(({ error }) => {
-        if (error) {
-          console.warn("Award settings save error in Supabase:", error);
-          saveCache(KEYS.awardSettings, previous);
-          window.dispatchEvent(new Event("sscr_store_synced"));
-        }
-      })
-      .catch(() => {
-        saveCache(KEYS.awardSettings, previous);
-        window.dispatchEvent(new Event("sscr_store_synced"));
-      });
-  }
+  window.dispatchEvent(new Event("sscr_store_synced"));
 }
 
 // ── Announcements ─────────────────────────────────────────────────────────
@@ -937,46 +833,68 @@ export function addAnnouncement(data: Omit<Announcement, "id">): Announcement {
   const all = loadCache<Announcement[]>(KEYS.announcements, []);
   const item: Announcement = { ...data, id: uid() };
   saveCache(KEYS.announcements, [...all, item]);
-
-  if (isSupabaseConfigured()) {
-    AnnouncementService.add(item).catch(() => {
-      saveCache(KEYS.announcements, all);
-      window.dispatchEvent(new Event("sscr_store_synced"));
-    });
-  }
-
+  window.dispatchEvent(new Event("sscr_store_synced"));
   return item;
 }
 
 export function updateAnnouncement(id: string, data: Partial<Announcement>) {
   const all = loadCache<Announcement[]>(KEYS.announcements, []);
   saveCache(KEYS.announcements, all.map((i) => (i.id === id ? { ...i, ...data } : i)));
-
-  if (isSupabaseConfigured()) {
-    AnnouncementService.update(id, data).catch(() => {
-      saveCache(KEYS.announcements, all);
-      window.dispatchEvent(new Event("sscr_store_synced"));
-    });
-  }
+  window.dispatchEvent(new Event("sscr_store_synced"));
 }
 
 export function deleteAnnouncement(id: string) {
   const all = loadCache<Announcement[]>(KEYS.announcements, []);
   saveCache(KEYS.announcements, all.filter((i) => i.id !== id));
-
-  if (isSupabaseConfigured()) {
-    AnnouncementService.delete(id).catch(() => {
-      saveCache(KEYS.announcements, all);
-      window.dispatchEvent(new Event("sscr_store_synced"));
-    });
-  }
+  window.dispatchEvent(new Event("sscr_store_synced"));
 }
 
 // ── Admin operations ──────────────────────────────────────────────────────
 
 export function getAllUsers(): User[] {
-  return loadCache<User[]>(KEYS.users, []);
+  const localUsers = loadCache<User[]>(KEYS.users, []);
+  const sheetsAccountsRaw = localStorage.getItem("jpcs_sheets_accounts_cache");
+  const overrides = getOfficerOverrides();
+  const photoOverrides = getPhotoOverrides();
+  const profileOverrides = getProfileOverrides();
+
+  let mergedUsers: User[] = [];
+  if (sheetsAccountsRaw) {
+    try {
+      const sheetUsers: User[] = JSON.parse(sheetsAccountsRaw);
+      const mergedMap = new Map<string, User>();
+      sheetUsers.forEach((u) => mergedMap.set(u.email.toLowerCase(), u));
+      localUsers.forEach((u) => mergedMap.set(u.email.toLowerCase(), u));
+      mergedUsers = Array.from(mergedMap.values());
+    } catch {
+      mergedUsers = localUsers;
+    }
+  } else {
+    mergedUsers = localUsers;
+  }
+
+  // Apply officer assignment, photo, and profile details overrides
+  return mergedUsers.map((u) => {
+    const emailKey = u.email.toLowerCase();
+    const noKey = (u.student_number || "").toLowerCase();
+    const assignedPos = overrides[emailKey] || (noKey ? overrides[noKey] : undefined);
+    const assignedPhoto = photoOverrides[emailKey] || (noKey ? photoOverrides[noKey] : undefined);
+    const profileOverride = profileOverrides[emailKey] || (noKey ? profileOverrides[noKey] : undefined);
+
+    let res = u;
+    if (profileOverride) {
+      res = { ...res, ...profileOverride };
+    }
+    if (assignedPos !== undefined) {
+      res = { ...res, officer_position: assignedPos };
+    }
+    if (assignedPhoto !== undefined) {
+      res = { ...res, profile_photo: assignedPhoto };
+    }
+    return res;
+  });
 }
+
 
 export function verifyUserEmail(email: string): boolean {
   const users = loadCache<User[]>(KEYS.users, []);
@@ -984,7 +902,7 @@ export function verifyUserEmail(email: string): boolean {
   if (idx !== -1) {
     users[idx].verified = true;
     saveCache(KEYS.users, users);
-    ProfileService.update(users[idx].id, { verified: true }).then();
+    window.dispatchEvent(new Event("sscr_store_synced"));
     return true;
   }
   return false;
@@ -992,30 +910,8 @@ export function verifyUserEmail(email: string): boolean {
 
 export function deleteUser(id: string) {
   const users = loadCache<User[]>(KEYS.users, []);
-  const target = users.find((u) => u.id === id);
-  if (target) {
-    if (target.profile_photo) StorageService.deleteAvatar(target.profile_photo).catch(console.error);
-    if (target.action_photo) StorageService.deleteAvatar(target.action_photo).catch(console.error);
-  }
-
   saveCache(KEYS.users, users.filter((u) => u.id !== id));
-
-  if (isSupabaseConfigured()) {
-    ProfileService.delete(id).then((res) => {
-      if (!res.success) {
-        console.warn("Profile delete warning in Supabase:", res.error);
-        // Rollback local cache if Supabase rejected the delete
-        saveCache(KEYS.users, users);
-      }
-      // Always re-sync from DB to confirm the delete
-      syncFromSupabase().catch(console.error);
-    }).catch(() => {
-      saveCache(KEYS.users, users);
-      syncFromSupabase().catch(console.error);
-    });
-  } else {
-    window.dispatchEvent(new Event("sscr_store_synced"));
-  }
+  window.dispatchEvent(new Event("sscr_store_synced"));
 }
 
 export function compressImage(file: File, maxWidth = 600, maxHeight = 600, quality = 0.75): Promise<string> {
@@ -1057,15 +953,11 @@ export function compressImage(file: File, maxWidth = 600, maxHeight = 600, quali
 }
 
 export async function uploadOfficerImageToStorage(file: File, officerId: string, type: "default" | "hover"): Promise<{ url: string; path?: string }> {
-  const res = await StorageService.uploadAvatar(file, officerId, type === "default" ? "profile" : "action");
-  if (res.success && res.data) {
-    return { url: res.data, path: `avatars/${officerId}/${type === "default" ? "profile" : "action"}.webp` };
-  }
-  throw new Error(res.error || "Failed to upload officer image");
+  const dataUrl = await compressImage(file);
+  return { url: dataUrl };
 }
 
 export async function deleteOfficerImageFromStorage(pathOrUrl?: string) {
-  if (pathOrUrl) {
-    await StorageService.deleteAvatar(pathOrUrl);
-  }
+  // No-op for base64 / local asset photos
 }
+

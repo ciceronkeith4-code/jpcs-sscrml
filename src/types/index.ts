@@ -63,6 +63,26 @@ export interface Subject {
   room?: string;
 }
 
+export interface BSITCurriculum {
+  id: number;
+  year_level: string; // e.g. "BSIT 1", "BSIT 2", "BSIT 3", "BSIT 4"
+  revision_status: string; // e.g. "OK REVISED AS OF AUG 23"
+  block: string; // "A", "B", "AB"
+  subject_code: string;
+  subject_description: string;
+  lec_units: number;
+  lab_units: number;
+  days: string;
+  time: string;
+  room: string;
+  student_count: number;
+  faculty: string | null;
+  mode: string;
+  total_units: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface CurriculumItem {
   id: string;
   course: string;
@@ -77,6 +97,8 @@ export interface CurriculumItem {
   schedule_days?: string;
   schedule_time?: string;
   room?: string;
+  faculty?: string;
+  mode?: string;
 }
 
 export interface AwardSetting {

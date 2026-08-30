@@ -24,8 +24,8 @@ const StudentManagementPage = lazy(() => import("../../pages/admin/StudentManage
 const CurriculumPage = lazy(() => import("../../pages/admin/CurriculumPage").then((module) => ({ default: module.CurriculumPage })));
 const AwardSettingsPage = lazy(() => import("../../pages/admin/AwardSettingsPage").then((module) => ({ default: module.AwardSettingsPage })));
 const AnnouncementsPage = lazy(() => import("../../pages/admin/AnnouncementsPage").then((module) => ({ default: module.AnnouncementsPage })));
-const AccountRequestsPage = lazy(() => import("../../pages/admin/AccountRequestsPage").then((module) => ({ default: module.AccountRequestsPage })));
 const OfficersPage = lazy(() => import("../pages/officers").then((module) => ({ default: module.OfficersPage })));
+const StudentCurriculumPage = lazy(() => import("../../pages/student/CurriculumViewPage").then((module) => ({ default: module.CurriculumViewPage })));
 
 export function PageSkeleton() {
   return (
@@ -82,6 +82,7 @@ export function AppRouter({ user, onLogout, onUpdateUser }: AppRouterProps) {
 
             <Route element={<RequireAuth user={user}><AppLayout user={user!} onLogout={onLogout} /></RequireAuth>}>
               <Route path={ROUTES.DASHBOARD} element={<DashboardPage user={user!} />} />
+              <Route path={ROUTES.CURRICULUM} element={<StudentCurriculumPage user={user!} />} />
               <Route path={ROUTES.SEMESTERS} element={<SemestersPage user={user!} />} />
               <Route path={`${ROUTES.SEMESTERS}/:semesterId`} element={<SubjectsPage user={user!} />} />
               <Route path={ROUTES.SIMULATOR} element={<SimulatorPage user={user!} />} />
@@ -94,7 +95,7 @@ export function AppRouter({ user, onLogout, onUpdateUser }: AppRouterProps) {
 
             <Route element={<RequireAdmin user={user}><AppLayout user={user!} onLogout={onLogout} isAdmin /></RequireAdmin>}>
               <Route path={ROUTES.ADMIN.DASHBOARD} element={<AdminDashboardPage />} />
-              <Route path={ROUTES.ADMIN.ACCOUNT_REQUESTS} element={<AccountRequestsPage />} />
+              <Route path="/admin/account-requests" element={<Navigate to={ROUTES.ADMIN.STUDENTS} replace />} />
               <Route path={ROUTES.ADMIN.STUDENTS} element={<StudentManagementPage />} />
               <Route path="/admin/officers" element={<OfficersPage user={user!} />} />
               <Route path={ROUTES.ADMIN.CURRICULUM} element={<CurriculumPage />} />

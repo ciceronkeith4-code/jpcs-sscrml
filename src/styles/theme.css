@@ -321,9 +321,51 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center top;
+  object-position: center 20%;
   filter: brightness(1) contrast(1);
 }
+
+/* Precise face centering for officer photos */
+.officer-img[src*="benedicto"] {
+  object-fit: cover;
+  object-position: center 15%;
+}
+
+
+
+.officer-img[src*="baguisa"] {
+  object-position: center 84%;
+}
+
+
+.officer-img[src*="timkang"] {
+  object-position: center 25%;
+}
+
+.officer-img[src*="arche"] {
+  object-position: center 20%;
+}
+
+.officer-img[src*="pagkatipunan"] {
+  object-position: center 30%;
+}
+
+.officer-img[src*="suero"] {
+  object-position: center 20%;
+}
+
+.officer-img[src*="fernandez"] {
+  object-position: center 25%;
+}
+
+.officer-img[src*="geras"] {
+  object-position: center 20%;
+}
+
+.officer-img[src*="morales"] {
+  object-position: center 20%;
+}
+
 
 .officer-photo-layer--formal .officer-img {
   transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), filter 1.2s cubic-bezier(0.16, 1, 0.3, 1);

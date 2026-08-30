@@ -1,11 +1,25 @@
-export type SiteRoute = { label: string; to: string };
+export type NavDropdownItem = { label: string; to: string; desc?: string };
+export type SiteRoute = { 
+  label: string; 
+  to: string; 
+  dropdown?: NavDropdownItem[];
+};
 export type Feature = { eyebrow: string; title: string; description: string; details: string[]; imageLabel: string; imageFile: string };
 
 export const navigation: SiteRoute[] = [
   { label: "Home", to: "/" },
   { label: "About Us", to: "/about" },
   { label: "Testimonial", to: "/testimonials" },
-  { label: "Contacts", to: "/about#contact" },
+  {
+    label: "Resources",
+    to: "/community#resources",
+    dropdown: [
+      { label: "Curriculum & Programs", to: "/programs", desc: "BSIT degree tracks & course roadmap" },
+      { label: "Community & Events", to: "/community", desc: "Hackathons, workshops & calendar" },
+      { label: "Official Contact", to: "/about#contact", desc: "Reach out to chapter officers" },
+      { label: "Membership Guide", to: "/community#resources", desc: "Student guide & handbook" },
+    ],
+  },
 ];
 
 export const footerGroups = [
@@ -33,12 +47,54 @@ export const memberships = [
 ];
 
 export const programFeatures: Feature[] = [
-  { eyebrow: "Technical foundation", title: "Programming workshops", description: "Guided, hands-on sessions make room for questions, experimentation, and the repetition needed to build confidence.", details: ["Web and software engineering", "Database design and management", "Cybersecurity and networking", "Emerging technology explorations"], imageLabel: "Hands-on coding workshop image", imageFile: "programs-workshop.webp" },
-  { eyebrow: "Professional perspective", title: "Technical seminars", description: "Conversations with educators, alumni, and practitioners connect academic foundations with current professional practice.", details: ["Industry-led discussions", "Alumni career stories", "Technical deep dives", "Ethics and professional responsibility"], imageLabel: "Technical seminar speaker image", imageFile: "programs-seminar.webp" },
-  { eyebrow: "Collaborative challenge", title: "Hackathons and competitions", description: "Time-bound challenges sharpen teamwork, resourcefulness, presentation skills, and the ability to turn ambiguity into action.", details: ["Mentored team formation", "Rapid prototyping", "Pitch and presentation coaching", "Competition readiness"], imageLabel: "Hackathon collaboration image", imageFile: "programs-hackathon.webp" },
-  { eyebrow: "Inquiry and invention", title: "Research and innovation", description: "Members receive a supportive environment for testing ideas, developing student projects, and communicating technical work clearly.", details: ["Research peer review", "Prototype feedback", "Technical presentation practice", "Interdisciplinary collaboration"], imageLabel: "Student research image", imageFile: "programs-research.webp" },
-  { eyebrow: "Responsibility in practice", title: "Leadership development", description: "Chapter work becomes a practical leadership laboratory where students learn to plan, decide, listen, and follow through.", details: ["Event and project management", "Team coordination", "Clear communication", "Service-centered leadership"], imageLabel: "Student officers planning image", imageFile: "programs-leadership.webp" },
-  { eyebrow: "Connections that matter", title: "Professional networking", description: "Thoughtful encounters with alumni, partners, and employers help students see career paths and build relationships with purpose.", details: ["Alumni conversations", "Partner-led sessions", "Career preparation", "Mentorship opportunities"], imageLabel: "Professional networking image", imageFile: "programs-networking.webp" },
+  { 
+    eyebrow: "01 · PRACTICAL CODE", 
+    title: "Hands-on Software Workshops", 
+    description: "Master modern full-stack development, database architecture, and production deployments through rigorous code-along labs.", 
+    details: ["Full-Stack Web & Mobile", "Cloud Infrastructure & APIs", "Database Engineering", "DevOps & CI/CD Workflows"], 
+    imageLabel: "Hands-on coding workshop", 
+    imageFile: "programs-workshop.webp" 
+  },
+  { 
+    eyebrow: "02 · INDUSTRY PERSPECTIVE", 
+    title: "Technical Masterclasses & Talks", 
+    description: "Learn directly from tech leads, cybersecurity architects, and alumni delivering real-world enterprise perspectives.", 
+    details: ["Enterprise Tech Architecture", "Cybersecurity & Threat Defense", "Alumni Engineering Journeys", "Career & Technical Roadmaps"], 
+    imageLabel: "Technical seminar speaker", 
+    imageFile: "programs-seminar.webp" 
+  },
+  { 
+    eyebrow: "03 · COMPETITIVE SPRINT", 
+    title: "Hackathons & Innovation Sprints", 
+    description: "Build functional software products in rapid, high-intensity hackathons designed to sharpen agility and team execution.", 
+    details: ["Rapid Product Prototyping", "Inter-Collegiate Hackathons", "Executive Pitch & Demo Day", "Agile Team Execution"], 
+    imageLabel: "Hackathon collaboration", 
+    imageFile: "programs-hackathon.webp" 
+  },
+  { 
+    eyebrow: "04 · RESEARCH & SYSTEMS", 
+    title: "Applied Computing & Capstones", 
+    description: "Transform ambitious technical concepts into verified research publications, patents, and production-ready systems.", 
+    details: ["System Architecture Design", "Applied AI & Data Research", "Peer Code Reviews", "Prototype Verification"], 
+    imageLabel: "Student research", 
+    imageFile: "programs-research.webp" 
+  },
+  { 
+    eyebrow: "05 · EXECUTIVE LEADERSHIP", 
+    title: "Student Leadership Laboratory", 
+    description: "Develop executive ownership, strategic communication, and team leadership through accredited chapter governance.", 
+    details: ["Project & Resource Operations", "Cross-Functional Management", "Technical Chapter Governance", "Public Speaking & Advocacy"], 
+    imageLabel: "Student officers planning", 
+    imageFile: "programs-leadership.webp" 
+  },
+  { 
+    eyebrow: "06 · CAREER LINKAGES", 
+    title: "Industry Linkages & Hiring Pipelines", 
+    description: "Direct bridges to leading software firms, corporate partners, and hiring pipelines for internships and careers.", 
+    details: ["Direct Corporate Pipelines", "Technical Mock Interviews", "Portfolio & Resume Audits", "Industry Mentorship Networks"], 
+    imageLabel: "Professional networking", 
+    imageFile: "programs-networking.webp" 
+  },
 ];
 
 export const audienceBenefits = [
@@ -65,11 +121,11 @@ export const officers = [
   { name: "Keith Czimonne Anderson Ciceron", role: "President", course: "BSIT · 4th Year", responsibility: "Sets the department direction, leads student initiatives, and supports every team.", profile_photo: "/officers/ciceron_profile.png", action_photo: "/officers/ciceron_action.jpg" },
   { name: "Karl Tristan Benedicto", role: "Vice President", course: "BSIT · 4th Year", responsibility: "Coordinates academic programs and strengthens internal officer collaboration.", profile_photo: "/officers/benedicto_profile.png", action_photo: "/officers/benedicto_action.jpg" },
   { name: "Andrei Baguisa", role: "Secretary", course: "BSIT · 3rd Year", responsibility: "Keeps department communications, schedules, and official records dependable.", profile_photo: "/officers/baguisa_profile.jpg", action_photo: "/officers/baguisa_action.jpg" },
-  { name: "Kenneth Gregorio", role: "Treasurer", course: "BSIT · 4th Year", responsibility: "Stewards department funds, budget planning, and resources with clarity and care." },
+  { name: "Kenneth Gregorio", role: "Treasurer", course: "BSIT · 4th Year", responsibility: "Stewards department funds, budget planning, and resources with clarity and care.", profile_photo: "/officers/gregorio_formal.PNG", action_photo: "/officers/gregorio_casual.png" },
   { name: "Khemuel Timkang", role: "Auditor", course: "BSIT · 4th Year", responsibility: "Maintains transparency and conducts audits for all department activities.", profile_photo: "/officers/timkang_profile.jpg", action_photo: "/officers/timkang_action.jpg" },
-  { name: "Von Dimaculangan", role: "P.R.O.", course: "BSIT · 4th Year", responsibility: "Manages public relations, announcements, and external communications." },
+  { name: "Von Dimaculangan", role: "P.R.O.", course: "BSIT · 4th Year", responsibility: "Manages public relations, announcements, and external communications.", profile_photo: "/officers/dimaculangan_formal.png", action_photo: "/officers/dimaculangan_casual.jpeg" },
   { name: "John Carl Arche", role: "Technical Head", course: "BSIT · 4th Year", responsibility: "Directs technical workshops, hands-on bootcamps, and developer support.", profile_photo: "/officers/arche_profile.png", action_photo: "/officers/arche_action.jpg" },
-  { name: "Lance Alvarez Ceasar", role: "Content Manager", course: "BSIT · 4th Year", responsibility: "Curates, edits, and designs creative digital media content for the department." },
+  { name: "Lance Alvarez Ceasar", role: "Content Manager", course: "BSIT · 4th Year", responsibility: "Curates, edits, and designs creative digital media content for the department.", profile_photo: "/officers/lance_formal.png", action_photo: "/officers/lance_casual.png" },
   { name: "JD Pagkatipunan", role: "Head of Sports", course: "BSIT · 4th Year", responsibility: "Organizes sports fests, computing e-sports, and physical fitness activities.", profile_photo: "/officers/pagkatipunan_profile.jpg", action_photo: "/officers/pagkatipunan_action.jpg" },
   { name: "Rick Paolo Suero", role: "4th Yr Representative", course: "BSIT · 4th Year", responsibility: "Represents the senior class, assisting fourth-year students with graduation requirements.", profile_photo: "/officers/suero_profile.jpg", action_photo: "/officers/suero_action.jpg" },
   { name: "Kenneth Fernandez", role: "3rd Yr Representative", course: "BSIT · 3rd Year", responsibility: "Coordinates with third-year class sections for department events and workshops.", profile_photo: "/officers/fernandez_profile.jpg", action_photo: "/officers/fernandez_action.jpg" },
@@ -94,27 +150,27 @@ export type Testimonial = {
 
 export const alumniTestimonials: Testimonial[] = [
   {
-    name: "Keith Ciceron",
-    role: "Former IT Department | SSCR MANILA President (2023-2024)",
-    quote: "Serving as President of the IT Department student community was one of the most defining moments of my student years. It wasn't just about leading events, but witnessing how a passionate community of computing students can come together, share knowledge, and lift each other up. The technical workshops and network we established paved the way for my transition into the tech industry.",
-    imageFile: "/officers/keith_profile.png"
+    name: "Jaison Quiaem",
+    role: "Former President (2023 - 2025) · Assistant Instructor",
+    quote: "Leading the IT Department from 2023 to 2025 was a transformative journey. Establishing hands-on technical bootcamps, student mentorship circles, and inter-collegiate linkages taught us how to lead with vision and purpose. The collaborative culture we fostered continues to inspire computing students to build with confidence.",
+    imageFile: "/officers/jaison_quiaem.png"
   },
   {
-    name: "Mark Diaz",
-    role: "Former IT Department | SSCR MANILA Vice President (2022-2023)",
-    quote: "The IT Department provided the bridge between theoretical classroom education and practical real-world skills. Through organizing hackathons and coordinating with industry partners, I gained technical and project management capabilities that you simply cannot learn from textbooks alone. I'm proud to see the community continue this legacy.",
-    imageFile: "/officers/mark_profile.png"
+    name: "Kyle Dizon",
+    role: "Former BSIT Student · AI Software Engineer Radenta",
+    quote: "The IT Department provided the perfect sandbox to push theoretical knowledge into high-impact software engineering. The hackathons, peer code reviews, and industry seminars gave me the exact skills and technical rigor needed to excel in building real-world enterprise systems.",
+    imageFile: "/officers/kyle_dizon.jpg"
   },
   {
-    name: "Patricia Santos",
-    role: "Former IT Department | SSCR MANILA Secretary (2021-2022)",
-    quote: "What I loved most about the IT Department community was the inclusive learning culture. We started peer mentorship groups where senior students guided freshmen through tough programming concepts. Being part of this leadership circle built my communication skills and confidence, which are crucial in my current role as a Software Engineer.",
-    imageFile: "/images/about-leadership.webp"
+    name: "Kevin Casas",
+    role: "Former BSIT Student · AI Software Engineer Radenta",
+    quote: "Being part of this community elevated my entire academic and technical journey. Working side-by-side with passionate peers on complex systems and student capstones sharpened my problem-solving ability and instilled in me the discipline to continuously master cutting-edge software solutions.",
+    imageFile: "/officers/kevin_casas.jpg"
   },
   {
-    name: "John Christian Ramos",
-    role: "Former IT Department | SSCR MANILA Tech Lead (2022-2024)",
-    quote: "We spent countless nights preparing hands-on programming bootcamps and tech seminars. The IT Department gave me a sandbox to build projects, try new technologies, and teach others. The experience of designing curriculum for workshops set a strong foundation for my career in Cloud Architecture.",
-    imageFile: "/images/about-capability.webp"
+    name: "Dillon Valenzuela",
+    role: "Former BSIT Student · Fresh Graduate",
+    quote: "What sets the IT Department apart is its dedication to practical execution and peer-to-peer collaboration. The technical workshops and real-world project sprints helped me master modern architectures and build systems that make a tangible industry impact.",
+    imageFile: "/officers/dillon_valenzuela.jpg"
   }
 ];

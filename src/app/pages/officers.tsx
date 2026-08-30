@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { PageHeader, EmptyState } from "../components/ui";
-import { getAllUsers } from "../store";
+import { getAllUsers, saveOfficerOverride, savePhotoOverride } from "../store";
+import { supabase } from "../../lib/supabaseClient";
+import { GoogleSheetsAuthService } from "../../services/googleSheets.service";
 import type { User } from "../../types";
 
 function OfficerPhotoCard({ officer, index }: { officer: User; index: number }) {
@@ -22,6 +24,24 @@ function OfficerPhotoCard({ officer, index }: { officer: User; index: number }) 
   const initials = officer.full_name
     ? officer.full_name.split(" ").filter(Boolean).map(n => n[0]).join("").slice(0, 2).toUpperCase()
     : "O";
+
+  const formatYearLevel = (yr?: string | number) => {
+    const y = String(yr || "1").trim();
+    if (y === "1") return "Year 1";
+    if (y === "2") return "Year 2";
+    if (y === "3") return "Year 3";
+    if (y === "4") return "Year 4";
+    return `Year ${y}`;
+  };
+
+  const formatYearLevelFull = (yr?: string | number) => {
+    const y = String(yr || "1").trim();
+    if (y === "1") return "1st Year (Freshman)";
+    if (y === "2") return "2nd Year (Sophomore)";
+    if (y === "3") return "3rd Year (Junior)";
+    if (y === "4") return "4th Year (Senior)";
+    return `Year ${y}`;
+  };
 
   return (
     <>
@@ -57,9 +77,6 @@ function OfficerPhotoCard({ officer, index }: { officer: User; index: number }) 
             </span>
             <div className="flex items-center gap-1.5 flex-wrap">
               <h3 className="text-base font-extrabold text-slate-900 leading-snug">{officer.full_name}</h3>
-              {officer.verified && (
-                <span className="text-xs bg-green-100 text-green-800 font-extrabold px-1.5 py-0.5 rounded border border-green-200">Verified</span>
-              )}
             </div>
             <p className="text-xs text-slate-500 font-medium mt-1">
               San Sebastian College Recoletos-Manila
@@ -69,7 +86,7 @@ function OfficerPhotoCard({ officer, index }: { officer: User; index: number }) 
           <div className="pt-3 border-t border-slate-100 space-y-2.5">
             <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
               <span className="bg-sky-50 text-sky-800 px-2.5 py-1 rounded-md border border-sky-200 font-bold">
-                {officer.course} · Year {officer.year_level || "1"}
+                {officer.course || "BSIT"} · {formatYearLevel(officer.year_level)}
               </span>
               <span className="text-slate-400 font-mono text-[11px]">{officer.student_number}</span>
             </div>
@@ -108,11 +125,8 @@ function OfficerPhotoCard({ officer, index }: { officer: User; index: number }) 
                   )}
                 </div>
                 <div>
-                  <h4 className="font-black text-slate-950 text-lg leading-tight flex items-center gap-1.5">
+                  <h4 className="font-black text-slate-950 text-lg leading-tight">
                     {officer.full_name}
-                    {officer.verified && (
-                      <span className="text-xs bg-green-100 text-green-800 font-extrabold px-1.5 py-0.2 rounded border border-green-200">Verified</span>
-                    )}
                   </h4>
                   <p className="text-xs text-slate-500 font-bold mt-1 text-primary">{officer.officer_position}</p>
                 </div>
@@ -133,7 +147,7 @@ function OfficerPhotoCard({ officer, index }: { officer: User; index: number }) 
                 </div>
                 <div className="flex justify-between">
                   <span className="font-medium text-slate-400">Year Level:</span>
-                  <span className="font-bold text-slate-800">{officer.year_level || "1"}</span>
+                  <span className="font-bold text-slate-800">{formatYearLevelFull(officer.year_level)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-medium text-slate-400">Department:</span>
@@ -168,16 +182,76 @@ export function OfficersPage({ user }: { user: User }) {
     const syncUsers = () => setAllUsers(getAllUsers());
     window.addEventListener("sscr_store_synced", syncUsers);
     window.addEventListener("focus", syncUsers);
+
+    // Live sync from Google Sheets
+    GoogleSheetsAuthService.fetchAccounts()
+      .then(() => setAllUsers(getAllUsers()))
+      .catch(() => {});
+
+    // Live sync officer roles & photos from Supabase
+    supabase
+      .from("user_credentials")
+      .select("email, profile_photo, officer_position, full_name, student_number, course, year_level, role")
+      .then(({ data: creds }) => {
+        if (creds && creds.length > 0) {
+          creds.forEach((cred) => {
+            if (cred.email) {
+              if (cred.officer_position && cred.officer_position !== "None") {
+                saveOfficerOverride(cred.email, cred.officer_position);
+                if (cred.student_number) saveOfficerOverride(cred.student_number, cred.officer_position);
+              }
+              if (cred.profile_photo) {
+                savePhotoOverride(cred.email, cred.profile_photo);
+                if (cred.student_number) savePhotoOverride(cred.student_number, cred.profile_photo);
+              }
+              if (cred.year_level || cred.course || cred.full_name) {
+                const details: Partial<User> = {};
+                if (cred.year_level) details.year_level = String(cred.year_level);
+                if (cred.course) details.course = cred.course;
+                if (cred.full_name) details.full_name = cred.full_name;
+                saveProfileOverride(cred.email, details);
+                if (cred.student_number) saveProfileOverride(cred.student_number, details);
+              }
+            }
+          });
+          setAllUsers(getAllUsers());
+        }
+      })
+      .catch(() => {});
+
     return () => {
       window.removeEventListener("sscr_store_synced", syncUsers);
       window.removeEventListener("focus", syncUsers);
     };
   }, []);
 
-  // Filter all active JPCS officers
-  const officers = allUsers.filter(
-    (u) => u.officer_position && u.officer_position !== "None" && u.officer_position !== ""
-  );
+  const rankOrder = [
+    "President",
+    "Vice - President",
+    "Vice President",
+    "Secretary",
+    "Treasurer",
+    "Auditor",
+    "Sports Comitee (HEAD)",
+    "Sports Comitee (Member)",
+    "Technical (HEAD)",
+    "Technical (Member)",
+    "JPCS Content Manager (HEAD)",
+    "JPCS Content Manager (Member)",
+    "Officer",
+  ];
+
+  // Filter and rank all active JPCS officers
+  const officers = allUsers
+    .filter((u) => u.officer_position && u.officer_position !== "None" && u.officer_position !== "")
+    .sort((a, b) => {
+      const idxA = rankOrder.indexOf(a.officer_position || "");
+      const idxB = rankOrder.indexOf(b.officer_position || "");
+      const rankA = idxA === -1 ? 99 : idxA;
+      const rankB = idxB === -1 ? 99 : idxB;
+      if (rankA !== rankB) return rankA - rankB;
+      return a.full_name.localeCompare(b.full_name);
+    });
 
   return (
     <div className="space-y-6">

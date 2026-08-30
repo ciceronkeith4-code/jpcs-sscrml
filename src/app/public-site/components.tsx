@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { ArrowRight, Check, ChevronUp, Code2, HeartHandshake, Menu, Network, Sparkles, Users, X } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, ChevronUp, Code2, HeartHandshake, Menu, Network, Sparkles, Users, X } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { footerGroups, navigation, type Feature } from "./data";
@@ -83,30 +83,40 @@ export function Reveal({ children, className = "", delay = 0 }: { children: Reac
 export function ImagePlaceholder({ label, file, className = "", priority = false }: { label: string; file: string; className?: string; priority?: boolean }) {
   const frame = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
+  const [hasError, setHasError] = useState(false);
+
   useEffect(() => {
-    if (reduce || !frame.current) return;
+    if (reduce || !frame.current || hasError) return;
     const context = gsap.context(() => {
       const inner = frame.current?.querySelector(".site-image-placeholder__inner");
       if (!inner) return;
       gsap.fromTo(inner, { yPercent: -5 }, { yPercent: 5, ease: "none", scrollTrigger: { trigger: frame.current, start: "top bottom", end: "bottom top", scrub: 0.7 } });
     }, frame);
     return () => context.revert();
-  }, [reduce]);
+  }, [reduce, hasError]);
+
   return (
-    <div ref={frame} className={`site-image-placeholder ${className}`} role="img" aria-label={label} data-priority={priority || undefined}>
-      <img 
-        src={`/images/${file}`} 
-        alt={label} 
-        className="absolute inset-0 w-full h-full object-cover z-10" 
-        loading="lazy"
-        onError={(e) => { e.currentTarget.style.display = 'none'; }} 
-      />
-      <div className="site-image-placeholder__inner" />
-      <span className="relative z-0">{label}</span>
-      <small className="relative z-0">Replace with /images/{file}</small>
+    <div ref={frame} className={`site-image-placeholder ${hasError ? "is-fallback" : "has-image"} ${className}`} role="img" aria-label={label} data-priority={priority || undefined}>
+      {!hasError && (
+        <img 
+          src={`/images/${file}`} 
+          alt={label} 
+          className="site-image-placeholder__img" 
+          loading={priority ? "eager" : "lazy"}
+          onError={() => setHasError(true)} 
+        />
+      )}
+      {hasError && (
+        <>
+          <div className="site-image-placeholder__inner" />
+          <span className="relative z-0">{label}</span>
+          <small className="relative z-0">Replace with /images/{file}</small>
+        </>
+      )}
     </div>
   );
 }
+
 
 export function SectionHeading({ eyebrow, title, copy, align = "left" }: { eyebrow: string; title: string; copy?: string; align?: "left" | "center" }) {
   return (
@@ -132,6 +142,8 @@ export const benefitIcons = { code: Code2, lead: Users, connect: Network, impact
 
 function MobileMenu({ open, close }: { open: boolean; close: () => void }) {
   const panel = useRef<HTMLDivElement>(null);
+  const [mobileDropdownOpen, setMobileDropdownOpen] = useState(false);
+
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement as HTMLElement | null;
@@ -155,13 +167,55 @@ function MobileMenu({ open, close }: { open: boolean; close: () => void }) {
       previous?.focus();
     };
   }, [close, open]);
+
   return (
     <AnimatePresence>
       {open && (
         <motion.div ref={panel} className="site-mobile-menu" id="site-mobile-menu" role="dialog" aria-modal="true" aria-label="Site navigation" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }}>
           <div className="site-mobile-menu__top"><Logo /><button type="button" onClick={close} aria-label="Close menu"><X /></button></div>
-          <nav aria-label="Mobile navigation">
-            {navigation.map((item, index) => <motion.div key={item.to} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 + index * 0.05 }}><SiteLink to={item.to} onClick={close}><span>0{index + 1}</span>{item.label}</SiteLink></motion.div>)}
+          <nav aria-label="Mobile navigation" className="space-y-1">
+            {navigation.map((item, index) => {
+              if (item.dropdown) {
+                return (
+                  <motion.div key={item.label} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 + index * 0.05 }}>
+                    <button
+                      type="button"
+                      onClick={() => setMobileDropdownOpen((prev) => !prev)}
+                      className="w-full flex items-center justify-between text-left py-2.5 text-lg font-semibold text-slate-800"
+                    >
+                      <span className="flex items-center gap-3">
+                        <span className="text-xs font-mono text-[#800000]">0{index + 1}</span>
+                        {item.label}
+                      </span>
+                      <ChevronDown className={`size-4 transition-transform duration-200 ${mobileDropdownOpen ? "rotate-180" : ""}`} />
+                    </button>
+                    {mobileDropdownOpen && (
+                      <div className="pl-6 pb-2 space-y-2 border-l-2 border-[#800000]/20 ml-3 mt-1">
+                        {item.dropdown.map((sub) => (
+                          <SiteLink
+                            key={sub.label}
+                            to={sub.to}
+                            onClick={close}
+                            className="block py-1.5 text-sm text-slate-600 hover:text-[#800000]"
+                          >
+                            <span className="font-medium">{sub.label}</span>
+                            {sub.desc && <small className="block text-[11px] text-slate-400">{sub.desc}</small>}
+                          </SiteLink>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              }
+
+              return (
+                <motion.div key={item.to} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 + index * 0.05 }}>
+                  <SiteLink to={item.to} onClick={close}>
+                    <span>0{index + 1}</span>{item.label}
+                  </SiteLink>
+                </motion.div>
+              );
+            })}
           </nav>
           <div className="site-mobile-menu__bottom">
             <div className="site-mobile-menu__actions">
@@ -178,18 +232,98 @@ function MobileMenu({ open, close }: { open: boolean; close: () => void }) {
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const update = () => setScrolled(window.scrollY > 24);
     update(); window.addEventListener("scroll", update, { passive: true });
     return () => window.removeEventListener("scroll", update);
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <>
       <header className={`site-header${scrolled ? " is-scrolled" : ""}`}>
         <div className="site-shell site-header__inner">
           <Logo />
           <nav className="site-nav" aria-label="Main navigation">
-            {navigation.map((item) => <NavLink key={item.to} to={item.to} end={item.to === "/"} className={({ isActive }) => isActive && !item.to.includes("#") ? "is-active" : undefined}><RollingText>{item.label}</RollingText></NavLink>)}
+            {navigation.map((item) => {
+              if (item.dropdown) {
+                return (
+                  <div
+                    key={item.label}
+                    ref={dropdownRef}
+                    className="relative group py-2"
+                    onMouseEnter={() => setDropdownOpen(true)}
+                    onMouseLeave={() => setDropdownOpen(false)}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setDropdownOpen((prev) => !prev)}
+                      className="inline-flex items-center gap-1 font-semibold text-[0.86rem] text-slate-700 hover:text-[#800000] transition-colors cursor-pointer py-1"
+                      aria-expanded={dropdownOpen}
+                    >
+                      <RollingText>{item.label}</RollingText>
+                      <ChevronDown className={`size-3.5 text-slate-400 transition-transform duration-200 ${dropdownOpen ? "rotate-180 text-[#800000]" : ""}`} />
+                    </button>
+
+                    {/* Dropdown Menu Box */}
+                    <AnimatePresence>
+                      {dropdownOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                          transition={{ duration: 0.16 }}
+                          className="absolute left-1/2 -translate-x-1/2 top-full mt-1 w-64 p-2 bg-white rounded-2xl border border-slate-200/90 shadow-xl z-50 overflow-hidden"
+                        >
+                          <div className="space-y-1">
+                            {item.dropdown.map((sub) => (
+                              <Link
+                                key={sub.label}
+                                to={sub.to}
+                                onClick={() => setDropdownOpen(false)}
+                                className="block px-3.5 py-2.5 rounded-xl hover:bg-slate-50 transition-colors group/item"
+                              >
+                                <span className="block text-xs font-bold text-slate-800 group-hover/item:text-[#800000] transition-colors">
+                                  {sub.label}
+                                </span>
+                                {sub.desc && (
+                                  <span className="block text-[11px] text-slate-500 font-normal mt-0.5 leading-snug">
+                                    {sub.desc}
+                                  </span>
+                                )}
+                              </Link>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              }
+
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === "/"}
+                  className={({ isActive }) => (isActive && !item.to.includes("#") ? "is-active" : undefined)}
+                >
+                  <RollingText>{item.label}</RollingText>
+                </NavLink>
+              );
+            })}
           </nav>
           <div className="site-header__actions">
             <AnimatedButton to="/login">LOGIN</AnimatedButton>
@@ -212,11 +346,24 @@ export function Footer() {
           <div className="site-footer__group">
             <h3>Contact</h3>
             <a href="mailto:jpcssscrmnl@gmail.com">jpcssscrmnl@gmail.com</a>
-            <span className="text-slate-300">JPCS- SSCR Manila Chapter</span>
-            <span>San Sebastian College–Recoletos Manila</span>
+            <span className="text-slate-300">JPCS SSCR Manila Chapter</span>
+            <span>San Sebastian College Recoletos Manila</span>
           </div>
         </div>
-        <div className="site-footer__bottom"><span>© {new Date().getFullYear()} JPCS–SSCR Manila</span><div><span>Privacy placeholder</span><span>Terms placeholder</span></div><button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} aria-label="Back to top"><ChevronUp /></button></div>
+        <div className="site-footer__bottom">
+          <div className="site-footer__bottom-left">
+            <span>© {new Date().getFullYear()} JPCS SSCR Manila</span>
+            <span className="text-slate-500">·</span>
+            <span className="text-amber-400 font-medium">Designed and Developed by Former President Keith Ciceron</span>
+          </div>
+          <div className="site-footer__bottom-right">
+            <span>Privacy placeholder</span>
+            <span>Terms placeholder</span>
+            <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} aria-label="Back to top">
+              <ChevronUp />
+            </button>
+          </div>
+        </div>
       </div>
     </footer>
   );
@@ -320,16 +467,33 @@ export function PublicSiteLayout() {
     </div>
   );
 }
-export function FullWidthCta({ eyebrow, title, copy, action, to, imageFile }: { eyebrow: string; title: string; copy?: string; action: string; to: string; imageFile: string }) {
+export function FullWidthCta({ eyebrow, title, copy, action, to }: { eyebrow: string; title: string; copy?: string; action: string; to: string; imageFile?: string }) {
   return (
-    <section className="site-cta site-shell">
-      <div className="site-cta__overlay" />
-      <Reveal className="site-cta__content">
-        <span className="site-eyebrow">{eyebrow}</span>
-        <h2>{title}</h2>
-        {copy && <p>{copy}</p>}
-        <AnimatedButton to={to} variant="light">{action}</AnimatedButton>
-      </Reveal>
+    <section className="site-cta-banner">
+      <div className="site-cta-banner__container site-shell">
+        {/* Large Watermark Text */}
+        <div aria-hidden="true" className="site-cta-banner__watermark">
+          <span>YOU'RE NEXT!</span>
+        </div>
+
+        {/* Centered Content */}
+        <Reveal className="site-cta-banner__content">
+          <h2 className="site-cta-banner__title">{title}</h2>
+          {copy ? (
+            <p className="site-cta-banner__copy">{copy}</p>
+          ) : (
+            <p className="site-cta-banner__copy">
+              Take the next step, gain meaningful experience, and grow professionally with{" "}
+              <strong>JPCS · SSCR Manila</strong>.
+            </p>
+          )}
+          <div className="site-cta-banner__action">
+            <AnimatedButton to={to} variant="primary">
+              {action}
+            </AnimatedButton>
+          </div>
+        </Reveal>
+      </div>
     </section>
   );
 }

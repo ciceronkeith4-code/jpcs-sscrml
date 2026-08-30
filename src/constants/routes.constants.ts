@@ -7,6 +7,7 @@ export const ROUTES = {
   LOGIN: "/login",
   CHANGE_PASSWORD: "/change-password",
   DASHBOARD: "/dashboard",
+  CURRICULUM: "/curriculum",
   SEMESTERS: "/semesters",
   SIMULATOR: "/simulator",
   STATISTICS: "/statistics",

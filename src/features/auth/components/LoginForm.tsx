@@ -5,10 +5,10 @@ import { AuthError, startEmailLogin } from "../../../app/auth/auth";
 import { saveCache } from "../../../store";
 
 interface LoginFormProps {
-  onSwitchToRequest: () => void;
+  onSwitchToRequest?: () => void;
 }
 
-export function LoginForm({ onSwitchToRequest }: LoginFormProps) {
+export function LoginForm({ onSwitchToRequest }: LoginFormProps = {}) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,40 +30,15 @@ export function LoginForm({ onSwitchToRequest }: LoginFormProps) {
     setLoading(true);
 
     try {
-      if (normalizedEmail === "admin@sscrmnl.edu.ph" && (password === "admin010404" || password === "admin123")) {
-        let user;
-        try {
-          user = await startEmailLogin(normalizedEmail, password);
-        } catch {
-          user = {
-            id: "vFsIfueElhVIPpOanZnvjmyeikE3",
-            uid: "vFsIfueElhVIPpOanZnvjmyeikE3",
-            full_name: "System Administrator",
-            student_number: "ADMIN-000",
-            course: "BSIT",
-            year_level: "4",
-            role: "admin" as const,
-            email: "admin@sscrmnl.edu.ph",
-            verified: true,
-          };
-        }
-        saveCache("sscr_session", user);
-        window.dispatchEvent(new Event("sscr_store_synced"));
-        if (user.mustChangePassword) {
-          navigate("/change-password", { replace: true });
-        } else {
-          navigate("/admin", { replace: true });
-        }
-        return;
-      }
-
       const user = await startEmailLogin(normalizedEmail, password);
+
       if (user.mustChangePassword) {
         navigate("/change-password", { replace: true });
       } else {
         navigate(user.role === "admin" ? "/admin" : "/dashboard", { replace: true });
       }
     } catch (authError: any) {
+
       console.error("Authentication error details:", authError);
       setLoading(false);
       setError(

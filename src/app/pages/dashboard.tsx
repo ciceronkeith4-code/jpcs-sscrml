@@ -206,52 +206,6 @@ function DashboardCalendar({
           ))}
         </div>
       </div>
-
-      {/* Selected Day Agenda */}
-      <div className="border-t border-slate-100 pt-4 space-y-3">
-        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-          Agenda for {new Date(selectedDateStr).toLocaleDateString("en-US", { dateStyle: "long" })}
-        </h4>
-        {selectedEvents.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {selectedEvents.map((evt, idx) => (
-              <div
-                key={idx}
-                className={`p-3.5 rounded-xl border text-xs flex flex-col justify-between ${
-                  evt.type === "event" 
-                    ? "bg-amber-50/70 border-amber-200 text-amber-900" 
-                    : "bg-sky-50/60 border-sky-100 text-slate-800"
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="font-extrabold leading-tight flex items-center gap-1.5 flex-wrap">
-                      {evt.title}
-                      {evt.type === "class" && (
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-sky-200/80 text-sky-950 border border-sky-300">
-                          BLK {evt.block || "A"}
-                        </span>
-                      )}
-                    </span>
-                    <Badge variant={evt.type === "event" ? "destructive" : "default"} className="text-[9px] px-1.5 py-0.5 shrink-0">
-                      {evt.type === "event" ? "Academic Event" : "Class"}
-                    </Badge>
-                  </div>
-                  {evt.desc && <p className="text-slate-500 font-medium text-[11px] leading-normal">{evt.desc}</p>}
-                </div>
-                {evt.type === "class" && (
-                  <div className="mt-2.5 pt-2 border-t border-sky-100/50 flex flex-wrap justify-between gap-1.5 text-[10px] text-slate-600 font-bold">
-                    <span>Time: {evt.time}</span>
-                    <span>Room: {evt.room}</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-slate-400 font-medium italic">No scheduled events or classes on this date.</p>
-        )}
-      </div>
     </Card>
   );
 }
@@ -304,40 +258,9 @@ export function DashboardPage({ user }: { user: User }) {
     .flatMap((semester) => getSubjects(semester.id))
     .filter(hasRecordedFinalGrade);
 
-  // Get Schedule
+  // Get Schedule strictly from current active subjects in database
   const getSchedule = () => {
-    const regularYearLevel = String(user?.year_level || "").match(/[1-4]/)?.[0] || "";
-    const section = String(user?.section || "").trim().toUpperCase();
-    const officialCurriculum = regularYearLevel
-      ? getCurriculum({
-          course: user?.course || "BSIT",
-          year_level: regularYearLevel,
-          semester: "First Semester",
-        }).filter(
-          (item) =>
-            !section ||
-            !item.block ||
-            item.block === "AB" ||
-            item.block === section,
-        )
-      : [];
-
-    const activeSubjectsList = officialCurriculum.length
-      ? officialCurriculum.map((c) => ({
-        id: c.id,
-        semester_id: "default",
-        subject_code: c.subject_code,
-        subject_name: c.subject_name,
-        units: c.units,
-        grade: 0,
-        status: "Currently Taking" as const,
-        course: c.course,
-        year_level: c.year_level,
-        room: c.room,
-        schedule_days: c.schedule_days,
-        schedule_time: c.schedule_time,
-      }))
-      : currentSubjects;
+    const activeSubjectsList = currentSubjects;
 
     const scheduleItems: Array<{
       day: string;
@@ -387,78 +310,49 @@ export function DashboardPage({ user }: { user: User }) {
 
   return (
     <div className="space-y-6">
-      {/* ── Welcome Card ────────────────────────────────────────── */}
-      <Card className="p-6 flex flex-col md:flex-row items-center gap-6 bg-white border border-slate-200 rounded-xl shadow-xs">
-        <div className="size-16 rounded-full bg-primary/10 border border-slate-200 flex items-center justify-center text-primary font-bold text-lg overflow-hidden shrink-0">
-          {user.profile_photo ? (
-            <img
-              src={user.profile_photo}
-              alt={user.full_name}
-              className="block size-full min-w-full object-cover object-center"
-            />
-          ) : (
-            <span>{initials}</span>
-          )}
-        </div>
-        <div className="flex-1 text-center md:text-left min-w-0">
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
-            <h2 className="text-xl font-bold text-slate-900 leading-tight">{user.full_name}</h2>
-            {user.verified && (
-              <span className="text-xs bg-green-50 text-green-700 font-extrabold px-2 py-0.5 rounded border border-green-200">✓ Verified</span>
-            )}
-            {user.officer_position && user.officer_position !== "None" && user.officer_position !== "" ? (
-              <span className="text-xs bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-0.5 rounded-full font-bold shadow-2xs">
-                Officer: {user.officer_position}
-              </span>
-            ) : user.role === "admin" ? (
-              <span className="text-xs bg-purple-100 text-purple-900 border border-purple-300 px-2.5 py-0.5 rounded-full font-bold">
-                Admin Staff
-              </span>
-            ) : (
-              <span className="text-xs bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-0.5 rounded-full font-semibold">
-                Student
-              </span>
-            )}
-          </div>
-          <div className="mt-2.5 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-slate-600 font-semibold max-w-2xl">
-            <div>
-              <span className="text-slate-400 font-medium block">Student Number</span>
-              <span className="font-mono text-slate-800">{user.student_number || "—"}</span>
+      {/* ── Welcome & Student Info Banner ──────────────── */}
+      <Card className="p-5 sm:p-6 bg-white border border-slate-200/90 rounded-2xl shadow-xs relative overflow-hidden">
+        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[#800000] via-amber-500 to-[#1c2b3a]" />
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-5">
+          <div className="flex-1 text-center md:text-left min-w-0 w-full">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+              <h2 className="text-lg sm:text-xl font-black text-slate-900 leading-tight">{user.full_name}</h2>
+              {user.officer_position && user.officer_position !== "None" && user.officer_position !== "" ? (
+                <span className="text-[10px] bg-amber-50 text-amber-900 border border-amber-300 px-2.5 py-0.5 rounded-full font-bold shadow-2xs">
+                  JPCS Officer{user.officer_position !== "Officer" ? `: ${user.officer_position}` : ""}
+                </span>
+              ) : user.role === "admin" ? (
+                <span className="text-[10px] bg-purple-50 text-purple-900 border border-purple-300 px-2.5 py-0.5 rounded-full font-bold">
+                  Admin Staff
+                </span>
+              ) : (
+                <span className="text-[10px] bg-blue-50 text-blue-900 border border-blue-200 px-2.5 py-0.5 rounded-full font-bold">
+                  JPCS Member
+                </span>
+              )}
             </div>
-            <div>
-              <span className="text-slate-400 font-medium block">Program / Course</span>
-              <span className="text-slate-800">{user.course || "BSIT"}</span>
-            </div>
-            <div>
-              <span className="text-slate-400 font-medium block">Year Level</span>
-              <span className="text-slate-800">{user.year_level ? `${user.year_level}th Year` : "1st Year"}</span>
-            </div>
-            <div>
-              <span className="text-slate-400 font-medium block">Section</span>
-              <span className="text-slate-800">{user.section || "A"}</span>
+
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-xs bg-slate-50/80 p-3 rounded-xl border border-slate-100 font-semibold">
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Student ID</span>
+                <span className="font-mono text-slate-800 text-xs font-bold">{user.student_number || "—"}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Department / Program</span>
+                <span className="text-slate-800 text-xs truncate block">{user.course || "BSIT"}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Academic Level</span>
+                <span className="text-slate-800 text-xs">{user.year_level ? (user.year_level === "Irregular" ? "Irregular" : `${user.year_level}th Year`) : "1st Year"}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider block">Class Block</span>
+                <span className="text-slate-800 text-xs">Section {user.section || "A"}</span>
+              </div>
             </div>
           </div>
         </div>
       </Card>
-
-      {/* ── Notices Section ────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Academic Notice Banner */}
-        <div className="bg-amber-50/70 border border-amber-200 text-amber-900 p-4.5 rounded-xl text-xs space-y-1">
-          <h4 className="font-black uppercase tracking-wider text-[10px] text-amber-850">Official Academic Notice</h4>
-          <p className="text-amber-800 font-medium leading-relaxed">
-            Pre-enlistment and clearing procedures for the upcoming term must be submitted to department chairs. Classes officially start on August 17, 2026.
-          </p>
-        </div>
-
-        {/* Sequential Blocking Notice */}
-        <div className="bg-slate-50/70 border border-slate-200 text-slate-900 p-4.5 rounded-xl text-xs space-y-1">
-          <h4 className="font-black uppercase tracking-wider text-[10px] text-slate-700">Sequential Blocking Information</h4>
-          <p className="text-slate-600 font-medium leading-relaxed">
-            San Sebastian College Recoletos implements the July 18 Revised Blocking model. Grades must satisfy prerequisite course criteria before registration into succeeding course cycles is allowed.
-          </p>
-        </div>
-      </div>
 
       {/* ── Quick Statistics (Only 4 Cards) ────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -484,14 +378,7 @@ export function DashboardPage({ user }: { user: User }) {
         />
       </div>
 
-      {/* ── Academic Calendar ────────────────────────────────────── */}
-      <DashboardCalendar
-        schedule={schedule}
-        announcements={allAnnouncements}
-        classStartDate={classStartDate}
-      />
-
-      {/* ── Schedule and Announcements grid ─────────────────────────── */}
+      {/* ── Schedule and Announcements grid (Moved to Top) ───────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Today's Schedule */}
         <Card className="p-5 border border-slate-200 rounded-xl bg-white flex flex-col justify-between">
@@ -571,118 +458,12 @@ export function DashboardPage({ user }: { user: User }) {
         </Card>
       </div>
 
-      <IrregularSubjectPickerModal user={user} semesters={semesters} />
+      {/* ── Academic Calendar ────────────────────────────────────── */}
+      <DashboardCalendar
+        schedule={schedule}
+        announcements={allAnnouncements}
+        classStartDate={classStartDate}
+      />
     </div>
-  );
-}
-
-function IrregularSubjectPickerModal({ user, semesters }: { user: User; semesters: any[] }) {
-  const [open, setOpen] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (user?.year_level === "Irregular") {
-      const userSubs = (semesters || []).flatMap((s) => getSubjects(s.id));
-      if (userSubs.length === 0) {
-        setOpen(true);
-      }
-    }
-  }, [user, semesters]);
-
-  if (!open || !user) return null;
-
-  const curriculum = getCurriculum({ course: user.course || "BSIT" });
-
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const handleConfirm = () => {
-    if (selectedIds.size === 0) return;
-
-    const startAnnouncement = getAnnouncements().find(
-      (announcement) => announcement.title === "Official Start of Classes",
-    );
-    const startYear = Number(
-      (startAnnouncement?.start_date || startAnnouncement?.publish_date || "2026-08-17").slice(0, 4),
-    );
-    const currentAY = `${startYear}–${startYear + 1}`;
-    let sem = semesters.find((s) => s.academic_year === currentAY);
-    if (!sem) {
-      sem = addSemester({ user_id: user.id, academic_year: currentAY, semester: "First Semester" });
-    }
-
-    const chosenItems = curriculum.filter((item) => selectedIds.has(item.id));
-    chosenItems.forEach((item) => {
-      addSubject({
-        semester_id: sem.id,
-        subject_code: item.subject_code,
-        subject_name: item.subject_name,
-        units: item.units,
-        grade: 0,
-        status: "Currently Taking",
-      });
-    });
-
-    setOpen(false);
-    window.location.reload();
-  };
-
-  return (
-    <Modal open={open} onClose={() => {}} title="📋 Select Subjects" size="lg" preventClose={true}>
-      <div className="p-6">
-        <p className="text-xs text-slate-500 mb-4">
-          As an <strong>Irregular Student</strong>, you must select the specific subjects you are currently enrolled in to populate your active schedule.
-        </p>
-
-        <div className="border border-slate-200 rounded-xl max-h-80 overflow-y-auto mb-5 divide-y divide-slate-100 bg-white">
-          {curriculum.map((item) => {
-            const isSelected = selectedIds.has(item.id);
-            return (
-              <label
-                key={item.id}
-                onClick={() => toggleSelect(item.id)}
-                className={`flex items-center justify-between p-3 text-xs cursor-pointer transition-colors ${
-                  isSelected ? "bg-slate-50 font-semibold" : "hover:bg-slate-50/50 text-slate-800"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => {}}
-                    className="size-4 rounded border-slate-300 text-primary focus:ring-primary"
-                  />
-                  <div>
-                    <span className="font-mono font-bold mr-2 text-primary">{item.subject_code}</span>
-                    <span>{item.subject_name}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 text-slate-500 shrink-0">
-                  <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded">Yr {item.year_level}</span>
-                  <span className="font-mono font-bold text-slate-700">{item.units} units</span>
-                </div>
-              </label>
-            );
-          })}
-        </div>
-
-        <div className="flex justify-between items-center pt-2">
-          <span className="text-xs text-slate-500">
-            Selected <strong>{selectedIds.size}</strong> subject(s)
-          </span>
-          <div className="flex gap-2">
-            <Button size="sm" onClick={handleConfirm} disabled={selectedIds.size === 0}>
-              Confirm & Save Subjects
-            </Button>
-          </div>
-        </div>
-      </div>
-    </Modal>
   );
 }

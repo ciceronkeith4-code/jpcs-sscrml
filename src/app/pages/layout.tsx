@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, NavLink, useNavigate, Link } from "react-router-dom";
 import { cn } from "../components/ui";
-import { getAnnouncements } from "../store";
+import { getAnnouncements, getOfficerOverrides } from "../store";
 import type { User } from "../../types";
 
 const STUDENT_NAV = [
   { to: "/dashboard", label: "Dashboard", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
+  { to: "/curriculum", label: "Curriculum", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
   { to: "/officers", label: "Officers", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 4 4 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" },
   { to: "/semesters", label: "Semesters", icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" },
   { to: "/simulator", label: "Grade Simulator", icon: "M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" },
@@ -15,7 +16,6 @@ const STUDENT_NAV = [
 
 const ADMIN_NAV = [
   { to: "/admin", label: "Dashboard", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
-  { to: "/admin/account-requests", label: "Account Requests", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
   { to: "/admin/students", label: "Students", icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" },
   { to: "/admin/officers", label: "Officers Directory", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 4 4 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" },
   { to: "/admin/curriculum", label: "Curriculum", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
@@ -76,7 +76,7 @@ function NotificationDropdown({ user, isAdmin }: { user: User; isAdmin: boolean 
 
 interface UserDropdownProps {
   user: User;
-  isAdmin?: boolean;
+  isAdmin: boolean;
   onLogout: () => Promise<void>;
   logoutLoading: boolean;
   initials: string;
@@ -84,7 +84,12 @@ interface UserDropdownProps {
 
 function UserDropdown({ user, isAdmin, onLogout, logoutLoading, initials }: UserDropdownProps) {
   const [open, setOpen] = useState(false);
-  const isOfficer = Boolean(user.officer_position && user.officer_position !== "None" && user.officer_position !== "");
+  const overrides = getOfficerOverrides();
+  const emailKey = (user.email || "").toLowerCase();
+  const noKey = (user.student_number || "").toLowerCase();
+  const currentOverride = overrides[emailKey] || (noKey ? overrides[noKey] : undefined);
+  const effectivePosition = currentOverride !== undefined ? currentOverride : (user.officer_position && user.officer_position !== "None" ? user.officer_position : "None");
+  const isOfficer = Boolean(effectivePosition && effectivePosition !== "None" && effectivePosition !== "");
 
   return (
     <div className="relative">
@@ -94,39 +99,28 @@ function UserDropdown({ user, isAdmin, onLogout, logoutLoading, initials }: User
 
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 border border-transparent transition-colors max-w-full"
+        className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-slate-100/80 border border-slate-200/70 bg-white shadow-2xs transition-all cursor-pointer select-none"
       >
-        <div className="size-8 rounded-full bg-white border border-slate-200 shadow-xs flex items-center justify-center shrink-0 overflow-hidden">
+        <div className="size-8 rounded-full bg-[#800000]/10 text-[#800000] border border-[#800000]/20 flex items-center justify-center shrink-0 overflow-hidden font-black text-xs">
           {user.profile_photo ? (
-            <img
-              src={user.profile_photo}
-              alt={user.full_name}
-              className="block size-full min-w-full object-cover object-center"
-            />
+            <img src={user.profile_photo} alt={user.full_name} className="size-full object-cover object-center" />
           ) : (
-            <span className="text-xs font-bold text-slate-600">{initials}</span>
+            <span>{initials}</span>
           )}
         </div>
-        <div className="hidden sm:flex flex-col items-start text-left min-w-0 max-w-[180px] md:max-w-[220px]">
-          <span className="w-full truncate text-xs font-bold text-slate-900 leading-tight" title={user.full_name}>
+        <div className="hidden sm:flex flex-col items-start text-left min-w-0 max-w-[160px] md:max-w-[200px]">
+          <span className="w-full truncate text-xs font-black text-slate-900 leading-tight" title={user.full_name}>
             {user.full_name}
           </span>
-          <span className={cn(
-            "text-[10px] font-bold truncate leading-none mt-1 px-1.5 py-0.5 rounded border max-w-full",
-            isOfficer
-              ? "bg-amber-50 text-amber-900 border-amber-200/80"
-              : user.role === "admin"
-              ? "bg-purple-50 text-purple-900 border-purple-200/80"
-              : "bg-slate-100 text-slate-600 border-slate-200/80"
-          )}>
-            {isOfficer ? `Officer: ${user.officer_position}` : user.role === "admin" ? "Admin" : "Student"}
+          <span className="w-full truncate text-[10px] font-semibold text-slate-500 leading-tight mt-0.5">
+            {user.student_number ? `${user.student_number} · ` : ""}{isOfficer ? (effectivePosition === "Officer" ? "Officer" : `Officer: ${effectivePosition}`) : user.role === "admin" ? "Admin Staff" : "Member"}
           </span>
         </div>
         <svg
-          className={cn("size-3.5 text-slate-400 shrink-0 ml-0.5 transition-transform duration-150 hidden sm:block", open && "rotate-180")}
+          className={cn("size-3.5 text-slate-400 shrink-0 ml-0.5 transition-transform duration-200 hidden sm:block", open && "rotate-180")}
           fill="none" stroke="currentColor" viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
@@ -142,9 +136,9 @@ function UserDropdown({ user, isAdmin, onLogout, logoutLoading, initials }: User
                   ? "bg-amber-100 text-amber-900 border-amber-300"
                   : user.role === "admin"
                   ? "bg-purple-100 text-purple-900 border-purple-300"
-                  : "bg-slate-100 text-slate-700 border-slate-200"
+                  : "bg-blue-50 text-blue-900 border-blue-200"
               )}>
-                {isOfficer ? `JPCS Officer: ${user.officer_position}` : user.role === "admin" ? "Admin Staff" : "Student"}
+                {isOfficer ? (effectivePosition === "Officer" ? "JPCS Officer" : `JPCS Officer: ${effectivePosition}`) : user.role === "admin" ? "Admin Staff" : "JPCS Member"}
               </span>
             </div>
           </div>
@@ -168,7 +162,7 @@ function UserDropdown({ user, isAdmin, onLogout, logoutLoading, initials }: User
               <svg className="size-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
-              {logoutLoading ? "Signing out..." : "Sign out"}
+              Sign out
             </button>
           </div>
         </div>
@@ -190,7 +184,31 @@ export function AppLayout({ user, onLogout, isAdmin }: AppLayoutProps) {
   const [logoutError, setLogoutError] = useState("");
   const isActualAdmin = isAdmin ?? (user.role === "admin");
   const nav = isActualAdmin ? ADMIN_NAV : STUDENT_NAV;
-  const isOfficer = Boolean(user.officer_position && user.officer_position !== "None" && user.officer_position !== "");
+
+  const overrides = getOfficerOverrides();
+  const emailKey = (user.email || "").toLowerCase();
+  const noKey = (user.student_number || "").toLowerCase();
+  const currentOverride = overrides[emailKey] || (noKey ? overrides[noKey] : undefined);
+  const effectivePosition = currentOverride !== undefined ? currentOverride : (user.officer_position && user.officer_position !== "None" ? user.officer_position : "None");
+  const isOfficer = Boolean(effectivePosition && effectivePosition !== "None" && effectivePosition !== "");
+
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("sscr_ui_sidebar_collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleCollapse = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("sscr_ui_sidebar_collapsed", String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   const handleLogout = async () => {
     if (logoutLoading) return;
@@ -244,112 +262,133 @@ export function AppLayout({ user, onLogout, isAdmin }: AppLayoutProps) {
 
   return (
     <div className="flex min-h-screen bg-[#faf9f6] text-slate-800">
-      {/* ── Desktop Left Sidebar ───────────────────────────────────── */}
-      <aside className="hidden lg:flex w-64 bg-white border-r border-slate-200 flex-col shrink-0 sticky top-0 h-screen justify-between z-30">
-        <div>
-          <div className="h-16 flex items-center px-6 border-b border-slate-200 gap-2.5">
-            <div className="flex gap-1.5 shrink-0">
+      {/* ── Desktop Left Sidebar (Fixed to Viewport) ─────────────── */}
+      <aside
+        className={cn(
+          "hidden lg:flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 bg-white border-r border-slate-200 transition-all duration-300 ease-in-out",
+          collapsed ? "w-20" : "w-64"
+        )}
+      >
+        <div className="flex flex-col min-h-0 flex-1">
+          {/* Logo Brand Header */}
+          <div className="h-16 flex items-center px-4 border-b border-slate-200 shrink-0 gap-3">
+            <div className="flex gap-1 shrink-0">
               <img src="/sscr-logo.png" alt="SSCR logo" className="size-8 object-contain bg-white rounded-full" />
               <img src="/jpcs-logo.png" alt="JPCS logo" className="size-8 object-contain bg-white rounded-full" />
             </div>
-            <div>
-              <h1 className="text-[10px] font-bold text-slate-900 tracking-tight leading-none">IT DEPARTMENT OF SSCR MANILA</h1>
-              <p className="text-[9px] text-slate-500 mt-0.5 font-medium">JPCS | SSCR MANILA CHAPTER Portal</p>
-            </div>
+            {!collapsed && (
+              <div className="flex flex-col min-w-0">
+                <span className="font-black text-slate-900 text-xs tracking-tight truncate">SSCR MANILA IT</span>
+                <span className="text-[10px] text-slate-500 font-bold truncate">JPCS Chapter Portal</span>
+              </div>
+            )}
           </div>
 
-          <nav className="p-4 space-y-1.5">
+          {/* Navigation Links List */}
+          <nav className="p-3 space-y-1 overflow-y-auto flex-1">
             {nav.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={item.to === "/admin" || item.to === "/dashboard"}
                 className={({ isActive }) =>
                   cn(
-                    "flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all",
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all relative group",
                     isActive
-                      ? "bg-primary text-white shadow-xs font-semibold"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
+                      ? "bg-[#800000] text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100",
+                    collapsed && "justify-center px-0"
                   )
                 }
               >
-                <svg className="size-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={item.icon} />
+                <svg className="size-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d={item.icon} />
                 </svg>
-                <span>{item.label}</span>
+                {!collapsed && <span>{item.label}</span>}
+                {collapsed && (
+                  <div className="absolute left-full ml-3 px-2.5 py-1 bg-slate-900 text-white text-xs rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap z-50 shadow-md">
+                    {item.label}
+                  </div>
+                )}
               </NavLink>
             ))}
           </nav>
         </div>
 
-        <div className="p-4 border-t border-slate-200 bg-slate-50/50">
-          <div className="flex flex-col gap-3 p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-full bg-primary/10 text-primary font-extrabold text-sm flex items-center justify-center shrink-0 border border-primary/20 overflow-hidden">
+        {/* ── Bottom: User Profile Card & Collapse Toggle Button ────────────── */}
+        <div className={cn("border-t border-slate-200 bg-slate-50/70 transition-all duration-300 shrink-0 flex flex-col gap-2", collapsed ? "p-2" : "p-3")}>
+          {collapsed ? (
+            <div className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-slate-200 shadow-2xs relative group/user">
+              <div className="size-9 rounded-full bg-[#800000]/10 text-[#800000] font-extrabold text-xs flex items-center justify-center shrink-0 border border-[#800000]/20 overflow-hidden">
                 {user.profile_photo ? (
-                  <img
-                    src={user.profile_photo}
-                    alt={user.full_name}
-                    className="block size-full min-w-full object-cover object-center"
-                  />
+                  <img src={user.profile_photo} alt={user.full_name} className="size-full object-cover object-center" />
                 ) : (
                   <span>{initials}</span>
                 )}
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1">
-                  <p className="text-sm font-extrabold text-slate-900 truncate leading-tight">{user.full_name}</p>
-                  {user.verified && (
-                    <span className="text-[10px] text-green-700 shrink-0 font-extrabold" title="Verified Account">✓</span>
-                  )}
-                </div>
-                <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">{user.email}</p>
+              {/* Tooltip on user card when collapsed */}
+              <div className="absolute left-full ml-3 bottom-0 p-3 bg-slate-900 text-white rounded-xl opacity-0 pointer-events-none group-hover/user:opacity-100 transition-opacity duration-150 whitespace-nowrap z-50 shadow-xl space-y-1">
+                <p className="text-xs font-bold">{user.full_name}</p>
+                {user.student_number && <p className="text-[10px] font-mono text-amber-300 font-bold">{user.student_number}</p>}
+                <p className="text-[10px] text-slate-300">{user.email}</p>
+                <p className="text-[10px] text-amber-300 font-semibold">{isOfficer ? (effectivePosition === "Officer" ? "Officer" : `Officer: ${effectivePosition}`) : user.role === "admin" ? "Admin Staff" : "Member"}</p>
               </div>
             </div>
-
-            {/* Role & Officer Position display */}
-            <div className="text-[11px] text-slate-600 border-t border-slate-100 pt-2 space-y-1">
-              {user.role === "admin" ? (
-                <div className="flex justify-between">
-                  <span className="text-slate-400 font-medium">Department:</span>
-                  <span className="font-semibold text-slate-800">{user.department || "Admin Staff"}</span>
-                </div>
-              ) : (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400 font-medium">Course:</span>
-                    <span className="font-semibold text-slate-800">{user.course || "BSIT"}</span>
-                  </div>
-                  {user.year_level && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-400 font-medium">Year Level:</span>
-                      <span className="font-semibold text-slate-800">{user.year_level === "Irregular" ? "Irregular" : `${user.year_level}th Year`}</span>
-                    </div>
+          ) : (
+            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white border border-slate-200 shadow-2xs hover:border-slate-300 transition-all">
+              <div className="size-10 rounded-full bg-[#800000]/10 text-[#800000] font-black text-xs flex items-center justify-center shrink-0 border border-[#800000]/20 overflow-hidden shadow-2xs">
+                {user.profile_photo ? (
+                  <img src={user.profile_photo} alt={user.full_name} className="size-full object-cover object-center" />
+                ) : (
+                  <span>{initials}</span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1 flex flex-col justify-center text-left">
+                <p className="text-xs font-black text-slate-900 truncate leading-tight w-full" title={user.full_name}>
+                  {user.full_name}
+                </p>
+                <div className="flex items-center gap-1.5 mt-1 text-[10px] truncate w-full">
+                  {user.student_number && user.role !== "admin" && (
+                    <span className="font-mono font-bold text-slate-600 shrink-0">
+                      {user.student_number}
+                    </span>
                   )}
-                </>
-              )}
-
-              {/* Clean Officer / Student Role Badge */}
-              <div className={cn(
-                "flex justify-between items-center rounded px-2 py-1 mt-1 border text-[10px] font-bold",
-                isOfficer
-                  ? "bg-amber-50 border-amber-200 text-amber-900"
-                  : user.role === "admin"
-                  ? "bg-purple-50 border-purple-200 text-purple-900"
-                  : "bg-slate-100 border-slate-200 text-slate-700"
-              )}>
-                <span className="text-slate-500 font-medium">Role:</span>
-                <span className="truncate max-w-[120px]">
-                  {isOfficer ? `Officer: ${user.officer_position}` : user.role === "admin" ? "Admin Staff" : "Student"}
-                </span>
+                  {user.student_number && user.role !== "admin" && (
+                    <span className="text-slate-300 font-bold">•</span>
+                  )}
+                  <span className={cn(
+                    "font-bold truncate",
+                    isOfficer
+                      ? "text-amber-700"
+                      : user.role === "admin"
+                      ? "text-purple-700"
+                      : "text-slate-500"
+                  )}>
+                    {isOfficer ? (effectivePosition === "Officer" ? "Officer" : effectivePosition) : user.role === "admin" ? "Admin Staff" : "Member"}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Collapse Button below profile */}
+          <button
+            onClick={toggleCollapse}
+            className={cn(
+              "flex items-center justify-center gap-2 py-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 border border-slate-200/80 bg-white transition-all text-xs font-medium cursor-pointer shadow-2xs",
+              collapsed ? "w-full" : "w-full"
+            )}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <svg className={cn("size-4 transition-transform duration-300", collapsed && "rotate-180")} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+            </svg>
+            {!collapsed && <span className="text-[11px] font-semibold text-slate-600">Collapse</span>}
+          </button>
         </div>
       </aside>
 
       {/* ── Main Workspace Area ───────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+      <div className={cn("flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-300 ease-in-out", collapsed ? "lg:pl-20" : "lg:pl-64")}>
         <header className="h-16 bg-white border-b border-slate-200 px-5 lg:px-8 flex items-center justify-between shrink-0 sticky top-0 z-20">
           <div className="flex items-center gap-3">
             <button
@@ -366,6 +405,7 @@ export function AppLayout({ user, onLogout, isAdmin }: AppLayoutProps) {
             </div>
           </div>
 
+
           <div className="flex items-center gap-3">
             <NotificationDropdown user={user} isAdmin={isActualAdmin} />
             <UserDropdown user={user} isAdmin={isActualAdmin} onLogout={handleLogout} logoutLoading={logoutLoading} initials={initials} />
@@ -381,30 +421,44 @@ export function AppLayout({ user, onLogout, isAdmin }: AppLayoutProps) {
         {mobileMenuOpen && (
           <div className="fixed inset-0 z-50 lg:hidden">
             <div className="absolute inset-0 bg-black/20" onClick={() => setMobileMenuOpen(false)} />
-            <aside className="absolute inset-y-0 left-0 w-64 bg-white shadow-xl flex flex-col justify-between">
+            <aside 
+              className="absolute inset-y-0 left-0 w-64 bg-white shadow-xl flex flex-col justify-between overflow-hidden max-h-screen overscroll-none"
+              style={{ maxHeight: "100vh", overflow: "hidden" }}
+            >
               <div>
-                <div className="h-16 flex items-center px-5 border-b border-slate-200 shrink-0 gap-2.5">
-                  <div className="flex gap-1.5 shrink-0">
-                    <img src="/sscr-logo.png" alt="SSCR logo" className="size-8 object-contain bg-white rounded-full" />
-                    <img src="/jpcs-logo.png" alt="JPCS logo" className="size-8 object-contain bg-white rounded-full" />
+                <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200 shrink-0 gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex gap-1 shrink-0">
+                      <img src="/sscr-logo.png" alt="SSCR logo" className="size-7 object-contain bg-white rounded-full" />
+                      <img src="/jpcs-logo.png" alt="JPCS logo" className="size-7 object-contain bg-white rounded-full" />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-bold text-slate-900 text-[10px] leading-tight truncate">SSCR MANILA IT</span>
+                      <span className="text-[9px] text-slate-500 font-medium truncate">JPCS Portal</span>
+                    </div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="font-bold text-slate-900 text-[10px] leading-tight">IT DEPARTMENT OF SSCR MANILA</span>
-                    <span className="text-[9px] text-slate-500 font-medium">JPCS | SSCR MANILA CHAPTER Portal</span>
-                  </div>
+                  <button
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                    title="Close menu"
+                  >
+                    <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
-                <nav className="p-4 space-y-1">
+
+                <nav className="p-3 space-y-1 overflow-hidden">
                   {nav.map((item) => (
                     <NavLink
                       key={item.to}
                       to={item.to}
-                      end={item.to === "/admin" || item.to === "/dashboard"}
                       onClick={() => setMobileMenuOpen(false)}
                       className={({ isActive }) =>
                         cn(
-                          "flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                          "flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-colors",
                           isActive
-                            ? "bg-primary text-white font-semibold"
+                            ? "bg-[#800000] text-white font-bold"
                             : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                         )
                       }
@@ -418,62 +472,38 @@ export function AppLayout({ user, onLogout, isAdmin }: AppLayoutProps) {
                 </nav>
               </div>
 
-              <div className="p-4 border-t border-slate-200 bg-slate-50/50">
-                <div className="flex flex-col gap-3 p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs mb-2">
-                  <div className="flex items-center gap-3">
-                    <div className="size-10 rounded-full bg-primary/10 text-primary font-extrabold text-sm flex items-center justify-center shrink-0 border border-primary/20 overflow-hidden">
-                      {user.profile_photo ? (
-                        <img
-                          src={user.profile_photo}
-                          alt={user.full_name}
-                          className="block size-full min-w-full object-cover object-center"
-                        />
-                      ) : (
-                        <span>{initials}</span>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1">
-                        <p className="text-sm font-extrabold text-slate-900 truncate leading-tight">{user.full_name}</p>
-                        {user.verified && (
-                          <span className="text-[10px] text-green-700 shrink-0 font-extrabold" title="Verified Account">✓</span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">{user.email}</p>
-                    </div>
-                  </div>
-
-                  <div className="text-[11px] text-slate-600 border-t border-slate-100 pt-2 space-y-1">
-                    {user.role === "admin" ? (
-                      <div className="flex justify-between">
-                        <span className="text-slate-400 font-medium">Department:</span>
-                        <span className="font-semibold text-slate-800">{user.department || "Admin Staff"}</span>
-                      </div>
+              {/* Profile Card at bottom in mobile */}
+              <div className="p-3 border-t border-slate-200 bg-slate-50/70">
+                <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white border border-slate-200 shadow-2xs hover:border-slate-300 transition-all">
+                  <div className="size-10 rounded-full bg-[#800000]/10 text-[#800000] font-black text-xs flex items-center justify-center shrink-0 border border-[#800000]/20 overflow-hidden shadow-2xs">
+                    {user.profile_photo ? (
+                      <img src={user.profile_photo} alt={user.full_name} className="size-full object-cover object-center" />
                     ) : (
-                      <>
-                        <div className="flex justify-between">
-                          <span className="text-slate-400 font-medium">Course:</span>
-                          <span className="font-semibold text-slate-800">{user.course || "BSIT"}</span>
-                        </div>
-                        {user.year_level && (
-                          <div className="flex justify-between">
-                            <span className="text-slate-400 font-medium">Year Level:</span>
-                            <span className="font-semibold text-slate-800">{user.year_level === "Irregular" ? "Irregular" : `${user.year_level}th Year`}</span>
-                          </div>
-                        )}
-                      </>
+                      <span>{initials}</span>
                     )}
-                    <div className={cn(
-                      "flex justify-between items-center rounded px-2 py-1 mt-1 border text-[10px] font-bold",
-                      isOfficer
-                        ? "bg-amber-50 border-amber-200 text-amber-900"
-                        : user.role === "admin"
-                        ? "bg-purple-50 border-purple-200 text-purple-900"
-                        : "bg-slate-100 border-slate-200 text-slate-700"
-                    )}>
-                      <span className="text-slate-500 font-medium">Role:</span>
-                      <span className="truncate max-w-[120px]">
-                        {isOfficer ? `Officer: ${user.officer_position}` : user.role === "admin" ? "Admin Staff" : "Student"}
+                  </div>
+                  <div className="min-w-0 flex-1 flex flex-col justify-center text-left">
+                    <p className="text-xs font-black text-slate-900 truncate leading-tight w-full" title={user.full_name}>
+                      {user.full_name}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-1 text-[10px] truncate w-full">
+                      {user.student_number && user.role !== "admin" && (
+                        <span className="font-mono font-bold text-slate-600 shrink-0">
+                          {user.student_number}
+                        </span>
+                      )}
+                      {user.student_number && user.role !== "admin" && (
+                        <span className="text-slate-300 font-bold">•</span>
+                      )}
+                      <span className={cn(
+                        "font-bold truncate",
+                        isOfficer
+                          ? "text-amber-700"
+                          : user.role === "admin"
+                          ? "text-purple-700"
+                          : "text-slate-500"
+                      )}>
+                        {isOfficer ? (effectivePosition === "Officer" ? "Officer" : effectivePosition) : user.role === "admin" ? "Admin Staff" : "Member"}
                       </span>
                     </div>
                   </div>
