@@ -108,15 +108,20 @@ export function ProfilePage({ user, onUpdate }: { user: User; onUpdate: (u: User
 
       // Also persist to Supabase user_credentials
       if (user.email) {
+        const passwordToPersist = (studentPassword && studentPassword !== "••••••••••••") ? studentPassword : "sscrmnlitdepartment";
         await supabase
           .from("user_credentials")
           .upsert(
             {
               email: user.email.trim().toLowerCase(),
-              full_name: pForm.full_name,
-              student_number: pForm.student_number,
-              course: pForm.course,
-              year_level: String(pForm.year_level || "1"),
+              password_hash: passwordToPersist,
+              full_name: pForm.full_name || user.full_name || user.email.split("@")[0],
+              student_number: pForm.student_number || user.student_number || `SSCR-${user.email.split("@")[0]}`,
+              course: pForm.course || user.course || "BSIT",
+              year_level: String(pForm.year_level || user.year_level || "1"),
+              role: user.role || "student",
+              officer_position: user.officer_position || "None",
+              profile_photo: user.profile_photo || "",
               updated_at: new Date().toISOString(),
             },
             { onConflict: "email" }
@@ -149,9 +154,10 @@ export function ProfilePage({ user, onUpdate }: { user: User; onUpdate: (u: User
 
     setPassLoading(true);
     try {
-      await changeUserPassword(studentPassword || "", newPass);
+      // Pass newPass as 1st argument (newPassword) and studentPassword as 2nd argument (currentPassword)
+      await changeUserPassword(newPass, studentPassword && studentPassword !== "••••••••••••" ? studentPassword : undefined);
       setStudentPassword(newPass);
-      setPassSuccess("Password successfully changed!");
+      setPassSuccess("Password successfully changed and synced with database!");
       setNewPass("");
       setConfirmPass("");
       setTimeout(() => {
@@ -186,13 +192,21 @@ export function ProfilePage({ user, onUpdate }: { user: User; onUpdate: (u: User
       updateProfile(user.id, updated);
       onUpdate(updated);
 
-      // Save photo URL to Supabase user_credentials
+      // Save photo URL to Supabase user_credentials with all required non-null fields
       if (user.email) {
+        const passwordToPersist = (studentPassword && studentPassword !== "••••••••••••") ? studentPassword : "sscrmnlitdepartment";
         await supabase
           .from("user_credentials")
           .upsert(
             {
               email: user.email.trim().toLowerCase(),
+              password_hash: passwordToPersist,
+              full_name: user.full_name || user.email.split("@")[0],
+              student_number: user.student_number || `SSCR-${user.email.split("@")[0]}`,
+              course: user.course || "BSIT",
+              year_level: String(user.year_level || "1"),
+              role: user.role || "student",
+              officer_position: user.officer_position || "None",
               profile_photo: photoUrl,
               updated_at: new Date().toISOString(),
             },
@@ -260,13 +274,21 @@ export function ProfilePage({ user, onUpdate }: { user: User; onUpdate: (u: User
       updateProfile(user.id, updated);
       onUpdate(updated);
 
-      // Update Supabase
+      // Update Supabase user_credentials
       if (user.email) {
+        const passwordToPersist = (studentPassword && studentPassword !== "••••••••••••") ? studentPassword : "sscrmnlitdepartment";
         await supabase
           .from("user_credentials")
           .upsert(
             {
               email: user.email.trim().toLowerCase(),
+              password_hash: passwordToPersist,
+              full_name: user.full_name || user.email.split("@")[0],
+              student_number: user.student_number || `SSCR-${user.email.split("@")[0]}`,
+              course: user.course || "BSIT",
+              year_level: String(user.year_level || "1"),
+              role: user.role || "student",
+              officer_position: user.officer_position || "None",
               profile_photo: "",
               updated_at: new Date().toISOString(),
             },

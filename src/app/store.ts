@@ -36,14 +36,26 @@ function getCacheKey(key: string) {
 function loadCache<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(getCacheKey(key));
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw) as CacheWrapper<T>;
-    if (parsed.version !== CACHE_VERSION) {
-      localStorage.removeItem(getCacheKey(key));
+    if (!raw) {
+      const legacy = localStorage.getItem(key);
+      if (legacy) {
+        try {
+          const parsedLegacy = JSON.parse(legacy);
+          saveCache(key, parsedLegacy);
+          return parsedLegacy;
+        } catch {}
+      }
       return fallback;
     }
-    if (Date.now() > parsed.expires_at) {
-      // Invalidate expired cache
+    const parsed = JSON.parse(raw) as CacheWrapper<T>;
+    if (parsed.version !== CACHE_VERSION) {
+      if (parsed.data) {
+        saveCache(key, parsed.data);
+        return parsed.data;
+      }
+      return fallback;
+    }
+    if (parsed.expires_at && Date.now() > parsed.expires_at) {
       return fallback;
     }
     return parsed.data;
@@ -57,7 +69,7 @@ export function saveCache<T>(key: string, value: T) {
     const wrapper: CacheWrapper<T> = {
       version: CACHE_VERSION,
       updated_at: Date.now(),
-      expires_at: Date.now() + APP_CONFIG.cacheTTL,
+      expires_at: Date.now() + 365 * 24 * 60 * 60 * 1000, // Persistent academic data for 1 year
       data: value,
     };
     localStorage.setItem(getCacheKey(key), JSON.stringify(wrapper));
