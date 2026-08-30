@@ -826,7 +826,6 @@ function OfficerOrgChart() {
           >
             {primaryPhoto ? (
               <>
-                {/* Formal Photo (Base Image) */}
                 <img
                   src={primaryPhoto}
                   alt={`${officer.name} formal`}
@@ -835,8 +834,6 @@ function OfficerOrgChart() {
                   }`}
                   loading="lazy"
                 />
-
-                {/* Casual Photo (Fades in on Hover) */}
                 {hasBothPhotos && (
                   <img
                     src={casualPhoto}
@@ -869,9 +866,72 @@ function OfficerOrgChart() {
     );
   };
 
+  const renderMobileOfficerCard = (officer: typeof officers[0], isMain = false) => {
+    const formalPhoto = officer.profile_photo;
+    const casualPhoto = (officer as any).action_photo;
+    const hasBothPhotos = Boolean(formalPhoto && casualPhoto && formalPhoto !== casualPhoto);
+    const primaryPhoto = formalPhoto || casualPhoto;
+
+    return (
+      <div
+        key={officer.name}
+        className={`bg-white/95 backdrop-blur-xs rounded-2xl border transition-all text-center flex flex-col items-center justify-between p-3.5 shadow-2xs hover:shadow-md ${
+          isMain
+            ? "border-[#800000]/40 ring-2 ring-[#800000]/10 w-full max-w-sm"
+            : "border-slate-200 w-full"
+        }`}
+      >
+        <div className="flex flex-col items-center w-full">
+          <div
+            className={`relative rounded-xl overflow-hidden border bg-slate-100 shrink-0 mb-2 ${
+              isMain ? "size-24 border-[#800000]/30 shadow-xs" : "size-20 border-slate-200"
+            }`}
+          >
+            {primaryPhoto ? (
+              <>
+                <img
+                  src={primaryPhoto}
+                  alt={`${officer.name} formal`}
+                  className={`w-full h-full object-cover transition-transform duration-500 ${
+                    hasBothPhotos ? "group-hover:opacity-0" : ""
+                  }`}
+                  loading="lazy"
+                />
+                {hasBothPhotos && (
+                  <img
+                    src={casualPhoto}
+                    alt={`${officer.name} casual`}
+                    className="absolute inset-0 w-full h-full object-cover opacity-0 hover:opacity-100 transition-all duration-500"
+                    loading="lazy"
+                  />
+                )}
+              </>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center font-mono text-xs text-slate-400">
+                IT
+              </div>
+            )}
+          </div>
+
+          <span
+            className={`text-[10px] sm:text-xs font-mono font-black uppercase tracking-wider block ${
+              isMain ? "text-[#800000] bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-100 mb-1" : "text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 mb-1"
+            }`}
+          >
+            {officer.role}
+          </span>
+          <h4 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug mt-0.5 text-center px-1">
+            {officer.name}
+          </h4>
+        </div>
+        <p className="text-[10.5px] text-slate-500 font-medium mt-1">{officer.course}</p>
+      </div>
+    );
+  };
+
   return (
     <div className="w-full overflow-x-auto py-4 relative flex flex-col items-center justify-center">
-      {/* Big Watermark Background Text with Exact 'YOU'RE NEXT!' Dual-Tone Gradient (Blue-Slate Left -> Warm Gold Right) */}
+      {/* Big Watermark Background Text */}
       <div 
         aria-hidden="true" 
         className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none overflow-hidden z-0 text-center"
@@ -888,7 +948,59 @@ function OfficerOrgChart() {
         </span>
       </div>
 
-      <div className="min-w-[900px] flex flex-col items-center justify-center select-none relative z-1 my-auto">
+      {/* ── Mobile & Tablet Stacked View (100% Readable, No Clipping) ── */}
+      <div className="lg:hidden w-full flex flex-col items-center gap-6 relative z-1 py-2">
+        {/* Tier 1: President */}
+        <div className="w-full flex flex-col items-center text-center">
+          <div className="mb-3 text-center">
+            <span className="text-xs font-mono font-black tracking-wider text-[#800000] uppercase block">
+              SAN SEBASTIAN COLLEGE RECOLETOS MANILA
+            </span>
+            <span className="text-[11px] font-semibold text-amber-700 block mt-0.5">
+              Information Technology Department
+            </span>
+          </div>
+          {renderMobileOfficerCard(president, true)}
+        </div>
+
+        {/* Tier 2: Executive Officers */}
+        <div className="w-full">
+          <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 block text-center mb-2.5">
+            Executive Board
+          </span>
+          <div className="grid grid-cols-2 gap-3 w-full max-w-md mx-auto">
+            {renderMobileOfficerCard(vp)}
+            {renderMobileOfficerCard(secretary)}
+            {renderMobileOfficerCard(treasurer)}
+            {renderMobileOfficerCard(auditor)}
+          </div>
+        </div>
+
+        {/* Tier 3: Operations & Technical Team */}
+        <div className="w-full">
+          <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 block text-center mb-2.5">
+            Department Committee Heads
+          </span>
+          <div className="grid grid-cols-2 gap-3 w-full max-w-md mx-auto">
+            {[pro, techHead, contentManager, sportsHead].map((off) =>
+              renderMobileOfficerCard(off)
+            )}
+          </div>
+        </div>
+
+        {/* Tier 4: Year Level Representatives */}
+        <div className="w-full">
+          <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 block text-center mb-2.5">
+            Year Level Representatives
+          </span>
+          <div className="grid grid-cols-2 gap-3 w-full max-w-md mx-auto">
+            {yearReps.map((off) => renderMobileOfficerCard(off))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Desktop & Laptop Tree Hierarchy Board (Full View) ────────── */}
+      <div className="hidden lg:flex min-w-[900px] flex-col items-center justify-center select-none relative z-1 my-auto">
         {/* Tier 1: President */}
         <div className="flex flex-col items-center">
           <div className="mb-4 text-center">

@@ -923,7 +923,7 @@ a:hover .site-rolling > span:last-child, button:hover .site-rolling > span:last-
   .site-mobile-menu__bottom p { display: none; }
   .site-page-hero { padding-top: 80px; width: 100%; }
 
-  .site-page-hero > .site-shell { display: flex; flex-direction: column; gap: 1.5rem; padding-inline: 0.25rem; width: 100%; }
+  .site-page-hero > .site-shell { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; }
   .site-page-hero__copy { width: 100%; max-width: 100%; min-width: 0; }
   .site-page-hero__copy h1, .site-page-hero--home .site-page-hero__copy h1 { font-size: clamp(1.65rem, 7.5vw, 2.15rem); line-height: 1.2; max-width: 100%; word-break: normal; overflow-wrap: break-word; }
   .site-page-hero__copy > p { font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.25rem; }
