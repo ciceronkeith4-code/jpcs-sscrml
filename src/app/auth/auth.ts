@@ -79,7 +79,7 @@ export async function startEmailLogin(email: string, password: string): Promise<
     const { data: dbCred, error: dbErr } = await supabase
       .from("user_credentials")
       .select("*")
-      .eq("email", normalizedEmail)
+      .ilike("email", normalizedEmail)
       .maybeSingle();
 
     if (!dbErr && dbCred) {
@@ -279,18 +279,21 @@ export async function changeUserPassword(newPassword: string, currentPassword?: 
         {
           email: normalizedEmail,
           password_hash: cleanNew,
-          student_number: session.student_number,
-          full_name: session.full_name,
-          year_level: session.year_level,
-          role: session.role,
-          course: session.course,
+          student_number: session.student_number || `SSCR-${normalizedEmail.split("@")[0]}`,
+          full_name: session.full_name || normalizedEmail.split("@")[0],
+          year_level: String(session.year_level || "1"),
+          role: session.role || "student",
+          course: session.course || "BSIT",
+          officer_position: session.officer_position || "None",
+          profile_photo: session.profile_photo || "",
           updated_at: new Date().toISOString(),
         },
         { onConflict: "email" }
       );
 
     if (upsertErr) {
-      console.warn("Supabase user_credentials upsert notice:", upsertErr);
+      console.warn("Supabase user_credentials upsert error:", upsertErr);
+      throw new Error(upsertErr.message);
     }
 
     // Also attempt Supabase Auth registration in background
