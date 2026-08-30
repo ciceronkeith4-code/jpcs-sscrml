@@ -439,18 +439,22 @@ function PageHero({
   return (
     <section className={`site-page-hero${home ? " site-page-hero--home" : ""}`}>
       <div className="site-shell">
-        <Reveal className="site-page-hero__copy">
-          <div className="text-[#800000] text-xs font-mono font-bold tracking-widest uppercase mb-3">
+        <Reveal className="site-page-hero__copy w-full min-w-0">
+          <div className="text-[#800000] text-[11px] sm:text-xs font-mono font-bold tracking-wider uppercase mb-3 leading-snug">
             {eyebrow}
           </div>
-          <h1 className="text-slate-900 font-black tracking-tight">{title}</h1>
-          <p className="text-slate-600 leading-relaxed text-base">{copy}</p>
+          <h1 className="text-slate-900 font-black tracking-tight text-2xl sm:text-4xl md:text-5xl lg:text-6xl leading-[1.15]">
+            {title}
+          </h1>
+          <p className="text-slate-600 leading-relaxed text-sm sm:text-base mt-3 max-w-xl">
+            {copy}
+          </p>
           <div className="site-page-hero__actions">
             <AnimatedButton to={primaryTo}>{primary}</AnimatedButton>
             {secondary && secondaryTo && <AnimatedButton to={secondaryTo} variant="outline">{secondary}</AnimatedButton>}
           </div>
         </Reveal>
-        <Reveal className="site-page-hero__visual" delay={0.12}>
+        <Reveal className="site-page-hero__visual w-full min-w-0" delay={0.12}>
           <HeroCodeCard pageType={pageType} />
         </Reveal>
       </div>

@@ -203,17 +203,16 @@ a:hover .site-rolling > span:last-child, button:hover .site-rolling > span:last-
 .site-image-placeholder > small { margin-top: .45rem; color: rgba(255,255,255,.48); font-size: .72rem; }
 .site-image-placeholder--wide { aspect-ratio: 16 / 7; min-height: 340px; margin-top: clamp(2.5rem, 4.5vw, 4.5rem); }
 
-.site-page-hero { min-height: auto; padding-top: clamp(124px, 14vh, 148px); display: flex; align-items: flex-start; }
-.site-page-hero > .site-shell { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: clamp(1.5rem, 2.5vw, 2.5rem); align-items: center; position: relative; padding-bottom: 1.5rem; }
-.site-page-hero__copy { grid-column: 1; }
-.site-page-hero__visual { grid-column: 2; width: 100%; display: flex; justify-content: center; }
+.site-page-hero { min-height: auto; padding-top: clamp(124px, 14vh, 148px); display: flex; align-items: flex-start; width: 100%; }
+.site-page-hero > .site-shell { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: clamp(1.5rem, 2.5vw, 2.5rem); align-items: center; position: relative; padding-bottom: 1.5rem; width: 100%; }
+.site-page-hero__copy { grid-column: 1; min-width: 0; width: 100%; }
+.site-page-hero__visual { grid-column: 2; width: 100%; min-width: 0; display: flex; justify-content: center; }
 
 .site-page-hero--no-image > .site-shell { display: block; max-width: 960px; }
-.site-page-hero--no-image .site-page-hero__copy h1 { max-width: 32ch; font-size: clamp(2.2rem, 3.8vw, 3.8rem); }
+.site-page-hero--no-image .site-page-hero__copy h1 { max-width: 100%; font-size: clamp(2.2rem, 3.8vw, 3.8rem); }
 
-
-.site-page-hero__copy h1 { max-width: 26ch; margin: .6rem 0 1rem; font-size: clamp(2rem, 3.4vw, 3.2rem); line-height: 1.12; letter-spacing: -.03em; font-weight: 600; }
-.site-page-hero--home .site-page-hero__copy h1 { max-width: 20ch; font-size: clamp(2.2rem, 3.8vw, 3.6rem); }
+.site-page-hero__copy h1 { max-width: 100%; margin: .6rem 0 1rem; font-size: clamp(2rem, 3.4vw, 3.2rem); line-height: 1.12; letter-spacing: -.03em; font-weight: 700; word-break: normal; overflow-wrap: break-word; }
+.site-page-hero--home .site-page-hero__copy h1 { max-width: 100%; font-size: clamp(2.2rem, 3.8vw, 3.6rem); }
 
 .site-page-hero__copy > p { max-width: 42rem; color: #475569; font-size: clamp(1rem, 1.2vw, 1.1rem); line-height: 1.65; margin-bottom: 1.5rem; }
 .site-page-hero__actions { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem; }
@@ -850,9 +849,11 @@ a:hover .site-rolling > span:last-child, button:hover .site-rolling > span:last-
   .site-nav, .site-header__actions { display: none; }
   .site-menu-button { display: inline-flex; }
   .site-header__inner { height: 78px; }
-  .site-page-hero { min-height: auto; padding-top: 100px; }
-  .site-page-hero > .site-shell { grid-template-columns: 1fr; gap: 2rem; padding-bottom: 2rem; }
-  .site-page-hero__copy h1, .site-page-hero--home .site-page-hero__copy h1 { max-width: 13ch; }
+  .site-page-hero { min-height: auto; padding-top: 100px; width: 100%; }
+  .site-page-hero > .site-shell { display: flex; flex-direction: column; grid-template-columns: 1fr; gap: 2rem; padding-bottom: 2rem; width: 100%; }
+  .site-page-hero__copy { width: 100%; max-width: 100%; min-width: 0; }
+  .site-page-hero__copy h1, .site-page-hero--home .site-page-hero__copy h1 { max-width: 100%; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.15; word-break: normal; overflow-wrap: break-word; }
+  .site-page-hero__visual { width: 100%; max-width: 100%; min-width: 0; }
   .site-page-hero__visual .site-image-placeholder { min-height: 280px; max-height: 340px; aspect-ratio: 16 / 9; border-radius: 1.5rem; }
   .site-page-hero--home .site-page-hero__visual { transform: none; }
 
@@ -875,12 +876,13 @@ a:hover .site-rolling > span:last-child, button:hover .site-rolling > span:last-
 @media (max-width: 768px) {
   .site-section { padding-block: 3.75rem; }
   .site-logo img { width: 42px; height: 42px; }
-  .site-page-hero { padding-top: 96px; }
+  .site-page-hero { padding-top: 92px; width: 100%; }
 
-  .site-page-hero > .site-shell { gap: 2rem; padding-bottom: 3rem; }
-  .site-page-hero__copy h1 { font-size: clamp(3rem, 12vw, 5rem); }
-  .site-page-hero__visual .site-image-placeholder { min-height: 350px; aspect-ratio: 4 / 3; border-radius: 1.6rem; }
-  .site-page-hero__scroll { bottom: 1rem; }
+  .site-page-hero > .site-shell { display: flex; flex-direction: column; gap: 1.75rem; padding-bottom: 2.5rem; width: 100%; }
+  .site-page-hero__copy { width: 100%; max-width: 100%; min-width: 0; }
+  .site-page-hero__copy h1, .site-page-hero--home .site-page-hero__copy h1 { font-size: clamp(1.85rem, 6vw, 2.5rem); line-height: 1.18; max-width: 100%; word-break: normal; overflow-wrap: break-word; }
+  .site-page-hero__visual { width: 100%; max-width: 100%; min-width: 0; }
+  .site-page-hero__visual .site-image-placeholder { min-height: 300px; aspect-ratio: 4 / 3; border-radius: 1.6rem; }
   .site-page-hero__scroll { display: none; }
   .site-narrative__grid, .site-intro__grid, .site-story__grid, .site-learning__grid { grid-template-columns: 1fr; gap: 2.5rem; }
   .site-narrative__body, .site-intro__grid > div:last-child { padding-top: 0; }
@@ -919,11 +921,15 @@ a:hover .site-rolling > span:last-child, button:hover .site-rolling > span:last-
   .site-logo small { font-size: .6rem; }
   .site-mobile-menu__bottom { align-items: start; flex-direction: column; }
   .site-mobile-menu__bottom p { display: none; }
-  .site-page-hero { padding-top: 78px; }
+  .site-page-hero { padding-top: 80px; width: 100%; }
 
-  .site-page-hero__copy h1 { font-size: clamp(2.9rem, 14vw, 4.3rem); }
+  .site-page-hero > .site-shell { display: flex; flex-direction: column; gap: 1.5rem; padding-inline: 0.25rem; width: 100%; }
+  .site-page-hero__copy { width: 100%; max-width: 100%; min-width: 0; }
+  .site-page-hero__copy h1, .site-page-hero--home .site-page-hero__copy h1 { font-size: clamp(1.65rem, 7.5vw, 2.15rem); line-height: 1.2; max-width: 100%; word-break: normal; overflow-wrap: break-word; }
+  .site-page-hero__copy > p { font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.25rem; }
   .site-page-hero__actions { align-items: stretch; flex-direction: column; }
   .site-page-hero__actions .site-button-wrap, .site-page-hero__actions .site-button { width: 100%; }
+  .site-page-hero__visual { width: 100%; max-width: 100%; min-width: 0; }
   .site-page-hero__visual .site-image-placeholder, .site-feature-row .site-image-placeholder, .site-community-group .site-image-placeholder, .site-learning .site-image-placeholder, .site-story .site-image-placeholder { min-height: 280px; }
   .site-image-placeholder { min-height: 280px; border-radius: 1.3rem; }
   .site-image-placeholder > small { max-width: 15rem; overflow-wrap: anywhere; }
