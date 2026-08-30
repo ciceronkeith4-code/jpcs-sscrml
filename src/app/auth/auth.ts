@@ -92,35 +92,6 @@ export async function startEmailLogin(email: string, password: string): Promise<
     console.warn("Supabase database credentials query notice:", err);
   }
 
-  // Also test Supabase Auth if applicable
-  if (!isSupabaseAuthenticated) {
-    try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: normalizedEmail,
-        password: cleanPassword,
-      });
-
-      if (!authError && authData?.user) {
-        isSupabaseAuthenticated = true;
-        if (!dbCredUser) {
-          dbCredUser = {
-            id: authData.user.id,
-            email: normalizedEmail,
-            full_name: authData.user.user_metadata?.full_name || normalizedEmail.split("@")[0],
-            role: authData.user.user_metadata?.role || (normalizedEmail.includes("admin") ? "admin" : "student"),
-            student_number: authData.user.user_metadata?.student_number || `SSCR-${authData.user.id.slice(0, 6)}`,
-            course: authData.user.user_metadata?.course || "BSIT",
-            year_level: authData.user.user_metadata?.year_level || "1",
-            officer_position: authData.user.user_metadata?.officer_position || "None",
-            profile_photo: authData.user.user_metadata?.profile_photo || "",
-          };
-        }
-      }
-    } catch {
-      // Supabase Auth provider disabled or invalid
-    }
-  }
-
   // If user is authenticated via Supabase:
   if (isSupabaseAuthenticated && dbCredUser) {
     const isAdmin = dbCredUser.role === "admin" || normalizedEmail.includes("admin");
@@ -296,21 +267,7 @@ export async function changeUserPassword(newPassword: string, currentPassword?: 
       throw new Error(upsertErr.message);
     }
 
-    // Also attempt Supabase Auth registration in background
-    try {
-      await supabase.auth.signUp({
-        email: normalizedEmail,
-        password: cleanNew,
-        options: {
-          data: {
-            full_name: session.full_name,
-            student_number: session.student_number,
-          },
-        },
-      });
-    } catch {
-      // Ignored if email provider toggle is not turned on
-    }
+
 
     // 2. Update session in client cache
     const updatedUser: User = {
