@@ -83,13 +83,85 @@ a:hover .site-rolling > span:last-child, button:hover .site-rolling > span:last-
 .public-site a:focus-visible, .public-site button:focus-visible { outline: 3px solid rgba(217,119,6,.55); outline-offset: 4px; }
 
 
-.site-mobile-menu { position: fixed; z-index: 1000; inset: 0; min-height: 100dvh; background: var(--primary); color: #fff; padding: 1.25rem clamp(1.25rem, 5vw, 3rem) 2rem; display: grid; grid-template-rows: auto 1fr auto; }
+.site-mobile-menu { position: fixed; z-index: 1000; inset: 0; min-height: 100dvh; background: var(--primary); color: #fff; padding: 1.25rem clamp(1.25rem, 5vw, 3rem) 2rem; display: grid; grid-template-rows: auto 1fr auto; overflow-y: auto; }
 .site-mobile-menu .site-logo strong, .site-mobile-menu .site-logo small { color: #fff; }
 .site-mobile-menu__top { display: flex; align-items: center; justify-content: space-between; }
-.site-mobile-menu__top button { width: 48px; height: 48px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.35); background: transparent; color: #fff; border-radius: 50%; }
-.site-mobile-menu nav { align-self: center; display: grid; }
-.site-mobile-menu nav a { display: flex; gap: 1.5rem; align-items: baseline; padding: .3rem 0; font-size: clamp(2rem, 8vw, 4.5rem); font-weight: 500; letter-spacing: -.045em; }
-.site-mobile-menu nav a span { font-size: .75rem; letter-spacing: .08em; opacity: .65; }
+.site-mobile-menu__top button { width: 48px; height: 48px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.35); background: transparent; color: #fff; border-radius: 50%; cursor: pointer; }
+.site-mobile-menu nav { align-self: center; display: flex; flex-direction: column; width: 100%; }
+
+.site-mobile-nav-item {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 1.25rem !important;
+  width: 100% !important;
+  padding: 0.5rem 0 !important;
+  color: #ffffff !important;
+  font-size: clamp(1.75rem, 6.5vw, 2.5rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.035em !important;
+  background: transparent !important;
+  border: none !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  line-height: 1.2 !important;
+  text-decoration: none !important;
+}
+
+.site-mobile-nav-item .nav-num {
+  font-family: "JetBrains Mono", monospace !important;
+  font-size: 0.85rem !important;
+  letter-spacing: 0.08em !important;
+  color: #fde68a !important;
+  font-weight: 700 !important;
+  opacity: 0.95 !important;
+}
+
+.site-mobile-nav-item .nav-text {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+.site-mobile-sublink {
+  display: block !important;
+  padding: 0.45rem 0 !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  font-size: 1.05rem !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+  text-decoration: none !important;
+  transition: color 0.15s ease !important;
+}
+
+.site-mobile-sublink:hover,
+.site-mobile-sublink:focus {
+  color: #fde68a !important;
+}
+
+.site-mobile-login-btn {
+  width: 100% !important;
+  height: 52px !important;
+  background-color: #ffffff !important;
+  color: #800000 !important;
+  font-weight: 900 !important;
+  font-size: 0.88rem !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  border-radius: 0.875rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25) !important;
+  text-decoration: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+}
+
+.site-mobile-login-btn span,
+.site-mobile-login-btn svg {
+  color: #800000 !important;
+  font-weight: 900 !important;
+}
+
 .site-mobile-menu__bottom { display: flex; justify-content: space-between; align-items: end; gap: 2rem; }
 .site-mobile-menu__actions { display: flex; flex-wrap: wrap; gap: .75rem; }
 .site-mobile-menu__actions .site-button--outline { border-color: rgba(255,255,255,.45); color: #fff; }

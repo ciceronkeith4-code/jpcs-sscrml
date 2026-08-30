@@ -334,8 +334,8 @@ function HeroCodeCard({ pageType = "home" }: { pageType?: string }) {
   return (
     <div className="w-full rounded-2xl bg-[#0b101b] text-slate-200 shadow-2xl border border-slate-800/90 overflow-hidden font-mono text-xs select-none">
       {/* IDE Editor Top Bar */}
-      <div className="bg-[#070b13] border-b border-slate-800/80 flex items-center justify-between px-3 pt-2">
-        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+      <div className="bg-[#070b13] border-b border-slate-800/80 flex items-center justify-between px-2 sm:px-3 pt-2 gap-2 overflow-hidden">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none max-w-full pb-1">
           {files.map((f) => {
             const isActive = f.id === activeTab;
             return (
@@ -343,10 +343,10 @@ function HeroCodeCard({ pageType = "home" }: { pageType?: string }) {
                 key={f.id}
                 type="button"
                 onClick={() => setActiveTab(f.id)}
-                className={`px-3 py-1.5 text-[11px] font-mono rounded-t-md transition-colors border-t-2 ${
+                className={`px-2.5 py-1 text-[11px] font-mono rounded-t-md transition-colors border-t-2 shrink-0 whitespace-nowrap cursor-pointer ${
                   isActive
                     ? "bg-[#0b101b] text-amber-400 border-amber-500 font-medium"
-                    : "text-slate-500 border-transparent hover:text-slate-300 hover:bg-white/[0.02]"
+                    : "text-slate-400 border-transparent hover:text-slate-200 hover:bg-white/[0.02]"
                 }`}
               >
                 {f.name}
@@ -354,7 +354,7 @@ function HeroCodeCard({ pageType = "home" }: { pageType?: string }) {
             );
           })}
         </div>
-        <div className="text-[10px] text-slate-500 hidden sm:block pb-1">
+        <div className="text-[10px] text-slate-500 hidden sm:block pb-1 shrink-0">
           {currentFile.lang}
         </div>
       </div>

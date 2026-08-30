@@ -173,7 +173,7 @@ function MobileMenu({ open, close }: { open: boolean; close: () => void }) {
       {open && (
         <motion.div ref={panel} className="site-mobile-menu" id="site-mobile-menu" role="dialog" aria-modal="true" aria-label="Site navigation" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }}>
           <div className="site-mobile-menu__top"><Logo /><button type="button" onClick={close} aria-label="Close menu"><X /></button></div>
-          <nav aria-label="Mobile navigation" className="space-y-3 my-auto py-4">
+          <nav aria-label="Mobile navigation" className="space-y-1.5 my-auto py-3 w-full">
             {navigation.map((item, index) => {
               if (item.dropdown) {
                 return (
@@ -181,25 +181,24 @@ function MobileMenu({ open, close }: { open: boolean; close: () => void }) {
                     <button
                       type="button"
                       onClick={() => setMobileDropdownOpen((prev) => !prev)}
-                      className="w-full flex items-baseline justify-between text-left py-2 group cursor-pointer"
+                      className="site-mobile-nav-item justify-between group"
                     >
-                      <span className="flex items-baseline gap-4 sm:gap-6">
-                        <span className="text-xs sm:text-sm font-mono tracking-widest text-amber-300 font-bold">0{index + 1}</span>
-                        <span className="text-white font-black text-2xl sm:text-4xl tracking-tight group-hover:text-amber-200 transition-colors">{item.label}</span>
+                      <span className="flex items-baseline gap-4">
+                        <span className="nav-num">0{index + 1}</span>
+                        <span className="nav-text group-hover:text-amber-200 transition-colors">{item.label}</span>
                       </span>
-                      <ChevronDown className={`size-5 text-white/90 transition-transform duration-200 ${mobileDropdownOpen ? "rotate-180 text-amber-300" : ""}`} />
+                      <ChevronDown className={`size-6 text-white/80 transition-transform duration-200 shrink-0 ${mobileDropdownOpen ? "rotate-180 text-amber-300" : ""}`} />
                     </button>
                     {mobileDropdownOpen && (
-                      <div className="pl-8 sm:pl-10 pb-2 space-y-2.5 border-l-2 border-white/20 ml-2.5 mt-2">
+                      <div className="pl-9 pb-2 pt-1 space-y-1 border-l-2 border-white/25 ml-3 my-1">
                         {item.dropdown.map((sub) => (
                           <SiteLink
                             key={sub.label}
                             to={sub.to}
                             onClick={close}
-                            className="block py-1.5 text-base sm:text-lg font-bold text-white/90 hover:text-amber-300 transition-colors"
+                            className="site-mobile-sublink"
                           >
                             <span>{sub.label}</span>
-                            {sub.desc && <small className="block text-xs text-amber-200/70 font-normal mt-0.5">{sub.desc}</small>}
                           </SiteLink>
                         ))}
                       </div>
@@ -210,24 +209,25 @@ function MobileMenu({ open, close }: { open: boolean; close: () => void }) {
 
               return (
                 <motion.div key={item.to} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 + index * 0.05 }}>
-                  <SiteLink to={item.to} onClick={close} className="flex items-baseline gap-4 sm:gap-6 py-2 group">
-                    <span className="text-xs sm:text-sm font-mono tracking-widest text-amber-300 font-bold">0{index + 1}</span>
-                    <span className="text-white font-black text-2xl sm:text-4xl tracking-tight group-hover:text-amber-200 transition-colors">{item.label}</span>
+                  <SiteLink to={item.to} onClick={close} className="site-mobile-nav-item group">
+                    <span className="nav-num">0{index + 1}</span>
+                    <span className="nav-text group-hover:text-amber-200 transition-colors">{item.label}</span>
                   </SiteLink>
                 </motion.div>
               );
             })}
           </nav>
-          <div className="site-mobile-menu__bottom pt-4 border-t border-white/15">
+          <div className="site-mobile-menu__bottom pt-4 border-t border-white/15 w-full">
             <div className="w-full space-y-2">
-              <SiteLink
+              <Link
                 to="/login"
                 onClick={close}
-                className="w-full h-12 bg-white hover:bg-amber-50 text-[#800000] font-black text-sm uppercase tracking-wider rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-98"
+                style={{ backgroundColor: "#ffffff", color: "#800000" }}
+                className="site-mobile-login-btn active:scale-98 transition-transform"
               >
-                <span>Member Login & Portal</span>
-                <ArrowRight className="size-4" />
-              </SiteLink>
+                <span style={{ color: "#800000", fontWeight: 900 }}>MEMBER LOGIN &amp; PORTAL</span>
+                <ArrowRight className="size-4 shrink-0" style={{ color: "#800000" }} />
+              </Link>
               <p className="text-[11px] text-white/70 text-center">Official email: jpcssscrmnl@gmail.com</p>
             </div>
           </div>
