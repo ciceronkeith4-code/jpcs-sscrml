@@ -367,54 +367,54 @@ export function LegalModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+      <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-y-auto">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-black/80 backdrop-blur-xs"
+          className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs"
         />
 
-        {/* Modal Window */}
+        {/* Plain White Modal Window */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.98, y: 10 }}
+          initial={{ opacity: 0, scale: 0.98, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.98, y: 10 }}
+          exit={{ opacity: 0, scale: 0.98, y: 12 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
-          className="relative z-10 w-full max-w-2xl max-h-[82vh] flex flex-col rounded-xl bg-[#181114] border border-white/15 shadow-2xl overflow-hidden text-slate-200"
+          className="relative z-10 w-full max-w-2xl max-h-[82vh] flex flex-col rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden text-slate-900 my-auto"
         >
           {/* Header */}
-          <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-black/30">
+          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white">
             <div>
-              <h2 className="text-base font-bold text-white tracking-tight">
-                {activeTab === "privacy" ? "Privacy Policy" : "Terms & Ownership"}
+              <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                {activeTab === "privacy" ? "Privacy Policy" : "Terms & System Ownership"}
               </h2>
-              <p className="text-xs text-slate-400">
-                JPCS · San Sebastian College - Recoletos Manila
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                JPCS · San Sebastian College - Recoletos Manila Chapter
               </p>
             </div>
 
             <button
               type="button"
               onClick={onClose}
-              className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
               aria-label="Close"
             >
               <X className="size-5" />
             </button>
           </div>
 
-          {/* Simple Clean Tabs */}
-          <div className="flex border-b border-white/10 px-6 gap-6 text-xs font-semibold bg-black/10">
+          {/* Clean Navigation Tabs */}
+          <div className="flex border-b border-slate-200 px-6 gap-6 text-xs font-bold bg-slate-50">
             <button
               type="button"
               onClick={() => onTabChange("privacy")}
               className={`py-3 transition-colors cursor-pointer border-b-2 ${
                 activeTab === "privacy"
-                  ? "border-amber-400 text-amber-400 font-bold"
-                  : "border-transparent text-slate-400 hover:text-slate-200"
+                  ? "border-[#800000] text-[#800000]"
+                  : "border-transparent text-slate-500 hover:text-slate-800"
               }`}
             >
               Privacy Policy
@@ -424,24 +424,24 @@ export function LegalModal({
               onClick={() => onTabChange("terms")}
               className={`py-3 transition-colors cursor-pointer border-b-2 ${
                 activeTab === "terms"
-                  ? "border-amber-400 text-amber-400 font-bold"
-                  : "border-transparent text-slate-400 hover:text-slate-200"
+                  ? "border-[#800000] text-[#800000]"
+                  : "border-transparent text-slate-500 hover:text-slate-800"
               }`}
             >
-              Terms & Ownership
+              Terms of Service & Ownership
             </button>
           </div>
 
-          {/* Clean Simple Text Body */}
-          <div className="flex-1 overflow-y-auto p-6 sm:p-7 space-y-5 text-xs sm:text-sm text-slate-300 leading-relaxed scrollbar-thin scrollbar-thumb-white/15">
+          {/* Plain White Simple Text Body */}
+          <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-5 text-xs sm:text-sm text-slate-700 leading-relaxed bg-white scrollbar-thin scrollbar-thumb-slate-200">
             {activeTab === "privacy" ? (
               <>
-                <p className="text-slate-400 text-xs pb-1">
-                  This policy outlines how student data is processed in accordance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).
+                <p className="text-slate-500 text-xs pb-2 border-b border-slate-100">
+                  This privacy policy describes how student records are protected in compliance with the Philippine Data Privacy Act of 2012 (Republic Act No. 10173).
                 </p>
 
                 <div className="space-y-1.5">
-                  <h3 className="font-bold text-white text-sm">1. Information We Collect</h3>
+                  <h3 className="font-extrabold text-slate-900 text-sm">1. Information We Collect</h3>
                   <p>
                     When accessing the JPCS Academic Portal, the system processes student identification details including Full Name, Student Number, Official Institutional Email (@sscrmnl.edu.ph), Degree Program (BSIT), and Academic Year Level.
                   </p>
@@ -451,60 +451,60 @@ export function LegalModal({
                 </div>
 
                 <div className="space-y-1.5">
-                  <h3 className="font-bold text-white text-sm">2. Purpose of Processing</h3>
+                  <h3 className="font-extrabold text-slate-900 text-sm">2. Purpose of Data Processing</h3>
                   <p>
                     All collected information is used solely for portal authentication, academic tracking, grade point average computation, honors and medal eligibility projection, and official organization officer directory display.
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <h3 className="font-bold text-white text-sm">3. Data Confidentiality & Protection</h3>
+                  <h3 className="font-extrabold text-slate-900 text-sm">3. Confidentiality & Security Safeguards</h3>
                   <p>
-                    Student records are strictly confidential. We do not sell, rent, or share student records with external advertisers or commercial third parties. All network communications are encrypted via SSL/TLS, and database access is protected through Row-Level Security (RLS) policies.
+                    Student records are strictly confidential. We do not sell, rent, or disclose student records to external commercial entities or advertisers. All network communications are protected via SSL/TLS encryption, and database access is restricted through automated Row-Level Security (RLS) policies.
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <h3 className="font-bold text-white text-sm">4. Student Rights & Inquiries</h3>
+                  <h3 className="font-extrabold text-slate-900 text-sm">4. Student Rights & Contact Information</h3>
                   <p>
-                    Under RA 10173, students have the right to request access to their stored data, correct erroneous entries, or request profile photo deletion. For inquiries, you may email us at <a href="mailto:jpcssscrmnl@gmail.com" className="text-amber-400 underline hover:text-amber-300">jpcssscrmnl@gmail.com</a>.
+                    Under RA 10173, students retain the right to access their stored academic records, rectify erroneous entries, or request profile updates. For inquiries or data assistance, contact us at <a href="mailto:jpcssscrmnl@gmail.com" className="text-[#800000] font-semibold underline hover:text-[#500000]">jpcssscrmnl@gmail.com</a>.
                   </p>
                 </div>
               </>
             ) : (
               <>
-                <p className="text-slate-400 text-xs pb-1">
-                  Terms and ownership governing the official platform of the Junior Philippine Computer Society – SSCR Manila Chapter.
+                <p className="text-slate-500 text-xs pb-2 border-b border-slate-100">
+                  Terms and intellectual property ownership governing the official platform of the Junior Philippine Computer Society – SSCR Manila Chapter.
                 </p>
 
                 <div className="space-y-1.5">
-                  <h3 className="font-bold text-white text-sm">1. System Ownership & Development</h3>
+                  <h3 className="font-extrabold text-slate-900 text-sm">1. System Ownership & Development</h3>
                   <p>
-                    This platform and academic portal was conceived, designed, and developed by <strong className="text-white font-semibold">Keith Czimonne Anderson Ciceron</strong> (Former President & Lead Developer, JPCS San Sebastian College - Recoletos Manila Chapter).
+                    This platform and academic portal was conceived, designed, and developed by <strong className="text-slate-900 font-bold">Keith Czimonne Anderson Ciceron</strong> (Former President & Lead Developer, JPCS San Sebastian College - Recoletos Manila Chapter).
                   </p>
                   <p>
-                    The source code, database architecture, design systems, algorithms, curriculum engines, and user interfaces are the proprietary intellectual property and operational system of the <strong className="text-white">Junior Philippine Computer Society (JPCS) - San Sebastian College - Recoletos Manila Chapter</strong> in collaboration with the <strong className="text-white">SSCR Manila IT Department</strong>.
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <h3 className="font-bold text-white text-sm">2. Institutional Trademarks</h3>
-                  <p>
-                    All college logos, institutional seals, academic degree curriculums, and departmental insignias of <strong className="text-white">San Sebastian College - Recoletos Manila</strong> remain the exclusive property of the institution, utilized under recognized collegiate organization administration.
+                    The source code, database architecture, design systems, algorithms, curriculum engines, and user interfaces are the proprietary intellectual property and operational system of the <strong className="text-slate-900 font-bold">Junior Philippine Computer Society (JPCS) - San Sebastian College - Recoletos Manila Chapter</strong> in collaboration with the <strong className="text-slate-900 font-bold">SSCR Manila IT Department</strong>.
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <h3 className="font-bold text-white text-sm">3. Permitted Use & Code of Conduct</h3>
+                  <h3 className="font-extrabold text-slate-900 text-sm">2. Institutional Trademarks</h3>
+                  <p>
+                    All college logos, institutional seals, academic degree curriculums, and departmental insignias of <strong className="text-slate-900 font-bold">San Sebastian College - Recoletos Manila</strong> remain the exclusive property of the institution, utilized under recognized collegiate organization administration.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <h3 className="font-extrabold text-slate-900 text-sm">3. Permitted Use & Security Rules</h3>
                   <p>
                     Access to this platform is authorized for enrolled students, faculty members, and student leaders for educational planning, academic scheduling, organization participation, and departmental announcements. Users agree not to attempt unauthorized scraping, database tampering, credential harvesting, or reverse engineering.
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <h3 className="font-bold text-white text-sm">4. Academic Advisory Disclaimer</h3>
+                  <h3 className="font-extrabold text-slate-900 text-sm">4. Academic Advisory Disclaimer</h3>
                   <p>
-                    Grade simulations, prerequisite assessments, and honors projections in this portal represent planning tools aligned with the July 18 / Aug 23 departmental curriculum standards. Official transcripts, certifications, and permanent scholastic evaluations remain under the sole jurisdiction of the <strong className="text-white">SSCR Manila Office of the Registrar</strong>.
+                    Grade simulations, prerequisite assessments, and honors projections in this portal represent planning tools aligned with the July 18 / Aug 23 departmental curriculum standards. Official transcripts, certifications, and permanent scholastic evaluations remain under the sole jurisdiction of the <strong className="text-slate-900 font-bold">SSCR Manila Office of the Registrar</strong>.
                   </p>
                 </div>
               </>
@@ -512,12 +512,12 @@ export function LegalModal({
           </div>
 
           {/* Simple Footer Bar */}
-          <div className="px-6 py-3 border-t border-white/10 bg-black/30 flex items-center justify-between text-xs text-slate-400">
+          <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
             <span>San Sebastian College - Recoletos Manila</span>
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 text-white font-medium transition-colors cursor-pointer text-xs"
+              className="px-4 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold transition-colors cursor-pointer text-xs"
             >
               Close
             </button>
