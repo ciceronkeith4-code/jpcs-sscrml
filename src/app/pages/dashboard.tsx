@@ -5,7 +5,7 @@ import {
 } from "../components/ui";
 import {
   getSemesters, getSubjects, getAwardSettings, getAnnouncements, calculateGA, checkAward, getCurriculum, addSemester, addSubject,
-  hasRecordedFinalGrade,
+  hasRecordedFinalGrade, getSelectedSemesterId,
 } from "../store";
 import type { User } from "../../types";
 import { expandScheduleDays } from "../schedule";
@@ -233,20 +233,11 @@ export function DashboardPage({ user }: { user: User }) {
   const announcements = allAnnouncements.slice(0, 3);
 
 
-  const now = new Date();
-  const calYear = now.getFullYear();
-  const month = now.getMonth() + 1;
-  const ayStart = month >= 8 ? calYear : calYear - 1;
-  const ayEnd = ayStart + 1;
-  const currentAY = `${ayStart}–${ayEnd}`;
-  const currentAYAlt = `${ayStart}-${ayEnd}`;
-
-  const currentYearSemesters = semesters.filter((s) => s.academic_year === currentAY || s.academic_year === currentAYAlt);
-  const currentSem = currentYearSemesters[currentYearSemesters.length - 1] ?? semesters[semesters.length - 1];
+  const activeSemId = getSelectedSemesterId(user);
+  const currentSem = (activeSemId ? semesters.find((s) => s.id === activeSemId) : null) ?? semesters[semesters.length - 1];
   const currentSubjects = (currentSem ? getSubjects(currentSem.id) : []).filter((sub) => {
     const matchesCourse = !sub.course || sub.course === user.course;
-    const matchesYear = !sub.year_level || sub.year_level === user.year_level;
-    return matchesCourse && matchesYear;
+    return matchesCourse;
   });
   
   // GWA Calculation

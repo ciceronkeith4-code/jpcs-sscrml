@@ -16,6 +16,9 @@ export interface User {
   status?: string;
   mustChangePassword?: boolean;
   provider?: "google" | "email" | string;
+  selected_semester_id?: string;
+  selected_academic_year?: string;
+  selected_semester?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -38,13 +41,20 @@ export const OFFICER_POSITIONS = [
 export interface Semester {
   id: string;
   user_id: string;
+  student_number?: string;
   academic_year: string;
   semester: string;
+  is_active?: boolean;
+  course?: string;
+  year_level?: string;
+  created_at?: string;
 }
 
 export interface Subject {
   id: string;
   semester_id: string;
+  user_id?: string;
+  student_number?: string;
   subject_code: string;
   subject_name: string;
   units: number;
@@ -61,6 +71,9 @@ export interface Subject {
   schedule_start?: string;
   schedule_end?: string;
   room?: string;
+  faculty?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface BSITCurriculum {

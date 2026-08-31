@@ -241,55 +241,164 @@ export async function syncUserAcademicData(user: User) {
   try {
     const studentNo = (user.student_number || "").trim();
     const userId = (user.id || "").trim();
+    const userEmail = (user.email || "").trim().toLowerCase();
 
-    // Build filter
+    if (!userId && !studentNo && !userEmail) return;
+
+    // 1. Fetch user credentials from Supabase to get active/selected semester
+    let activeSelectedSemId = user.selected_semester_id || "";
+    let userYearLevel = user.year_level || "1";
+    let userCourse = user.course || "BSIT";
+
+    try {
+      const { data: dbCred } = await supabase
+        .from("user_credentials")
+        .select("selected_semester_id, selected_academic_year, selected_semester, year_level, course")
+        .or(`email.ilike.${userEmail},student_number.eq.${studentNo}`)
+        .maybeSingle();
+
+      if (dbCred) {
+        if (dbCred.selected_semester_id) activeSelectedSemId = dbCred.selected_semester_id;
+        if (dbCred.year_level) userYearLevel = String(dbCred.year_level);
+        if (dbCred.course) userCourse = dbCred.course;
+      }
+    } catch {}
+
+    // Build query filter
     const orFilter = studentNo
       ? `user_id.eq.${userId},student_number.eq.${studentNo}`
       : `user_id.eq.${userId}`;
 
-    // 1. Fetch semesters for this student from Supabase
+    // 2. Fetch semesters for this student from Supabase
     const { data: semsData, error: semsErr } = await supabase
       .from("semesters")
       .select("*")
-      .or(orFilter);
+      .or(orFilter)
+      .order("created_at", { ascending: true });
 
-    const localSems = loadCache<Semester[]>(KEYS.semesters, []);
+    let finalSemesters: Semester[] = [];
 
     if (!semsErr && semsData && semsData.length > 0) {
-      const mergedMap = new Map<string, Semester>();
-      localSems.forEach((s) => mergedMap.set(s.id, s));
-      semsData.forEach((s) => mergedMap.set(s.id, s));
-      saveCache(KEYS.semesters, Array.from(mergedMap.values()));
-    } else if (localSems.length > 0) {
-      // Push local semesters to Supabase so they persist permanently
-      const mySems = localSems.filter((s) => s.user_id === userId || (studentNo && s.student_number === studentNo));
-      if (mySems.length > 0) {
-        void supabase.from("semesters").upsert(mySems, { onConflict: "id" });
+      finalSemesters = semsData.map((s) => ({
+        id: s.id,
+        user_id: s.user_id || userId,
+        student_number: s.student_number || studentNo,
+        semester: s.semester,
+        academic_year: s.academic_year,
+        is_active: s.is_active || s.id === activeSelectedSemId,
+        course: s.course || userCourse,
+        year_level: s.year_level || userYearLevel,
+        created_at: s.created_at,
+      }));
+      saveCache(KEYS.semesters, finalSemesters);
+    } else {
+      // First-time student with NO saved semesters in Supabase:
+      // Safe initialization: create initial default semester in Supabase
+      const defaultSemId = `sem_${studentNo.replace(/[^a-zA-Z0-9]/g, "_")}_2026_1`;
+      const initialSem: Semester = {
+        id: defaultSemId,
+        user_id: userId,
+        student_number: studentNo || `SSCR-${userId.slice(0, 6)}`,
+        semester: "First Semester",
+        academic_year: "2026–2027",
+        is_active: true,
+        course: userCourse,
+        year_level: userYearLevel,
+      };
+
+      try {
+        await supabase.from("semesters").upsert([initialSem], { onConflict: "id" });
+        finalSemesters = [initialSem];
+        activeSelectedSemId = defaultSemId;
+        saveCache(KEYS.semesters, finalSemesters);
+
+        // Update user_credentials with this default selected semester
+        if (userEmail) {
+          await supabase
+            .from("user_credentials")
+            .update({
+              selected_semester_id: defaultSemId,
+              selected_academic_year: "2026–2027",
+              selected_semester: "First Semester",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("email", userEmail);
+        }
+      } catch (err) {
+        console.warn("Initial semester setup notice:", err);
       }
     }
 
-    // 2. Fetch subjects/grades for this student from Supabase
+    // 3. Fetch subjects/grades for this student from Supabase
     const { data: subsData, error: subsErr } = await supabase
       .from("subjects")
       .select("*")
       .or(orFilter);
 
-    const localSubs = loadCache<Subject[]>(KEYS.subjects, []);
-
     if (!subsErr && subsData && subsData.length > 0) {
-      const mergedMap = new Map<string, Subject>();
-      localSubs.forEach((s) => mergedMap.set(s.id, s));
-      subsData.forEach((s) => mergedMap.set(s.id, s));
-      saveCache(KEYS.subjects, Array.from(mergedMap.values()));
-    } else if (localSubs.length > 0) {
-      // Push local subjects to Supabase so they persist permanently
-      const mySubs = localSubs.filter((s) => s.user_id === userId || (studentNo && s.student_number === studentNo));
-      if (mySubs.length > 0) {
-        void supabase.from("subjects").upsert(mySubs, { onConflict: "id" });
+      const formattedSubs: Subject[] = subsData.map((sub) => ({
+        id: sub.id,
+        semester_id: sub.semester_id,
+        user_id: sub.user_id || userId,
+        student_number: sub.student_number || studentNo,
+        subject_code: sub.subject_code,
+        subject_name: sub.subject_name,
+        units: Number(sub.units) || 3,
+        grade: Number(sub.grade) || 0,
+        status: sub.status || (sub.grade > 0 ? "Graded" : "Currently Taking"),
+        block: sub.block || sub.subject_block || "A",
+        schedule_days: sub.schedule_days || sub.schedule_day || "",
+        schedule_time: sub.schedule_time || (sub.schedule_start && sub.schedule_end ? `${sub.schedule_start} - ${sub.schedule_end}` : ""),
+        schedule_day: sub.schedule_day || sub.schedule_days || "",
+        schedule_start: sub.schedule_start || "",
+        schedule_end: sub.schedule_end || "",
+        room: sub.room || "",
+        faculty: sub.faculty || "",
+        mode: sub.mode || "",
+        lec_units: Number(sub.lec_units) || 0,
+        lab_units: Number(sub.lab_units) || 0,
+        course: userCourse,
+        year_level: userYearLevel,
+      }));
+      saveCache(KEYS.subjects, formattedSubs);
+    } else if (finalSemesters.length > 0 && activeSelectedSemId) {
+      // If student has a semester but NO subject records at all, populate from official curriculum template
+      try {
+        const yearTag = `BSIT ${userYearLevel === "4" ? "4" : userYearLevel === "3" ? "3" : userYearLevel === "2" ? "2" : "1"}`;
+        const templateItems = OFFICIAL_BSIT_CURRICULUM_SEED.filter((c) => c.year_level === yearTag);
+        if (templateItems.length > 0) {
+          const newSubs: any[] = templateItems.map((item, idx) => ({
+            id: `sub_${studentNo.replace(/[^a-zA-Z0-9]/g, "_")}_${item.subject_code}_${idx}`,
+            semester_id: activeSelectedSemId,
+            user_id: userId,
+            student_number: studentNo || `SSCR-${userId.slice(0, 6)}`,
+            subject_code: item.subject_code,
+            subject_name: item.subject_description,
+            units: item.total_units || 3,
+            grade: 0,
+            status: "Currently Taking",
+            block: item.block || "A",
+            schedule_day: item.days,
+            schedule_days: item.days,
+            schedule_time: item.time,
+            room: item.room,
+            faculty: item.faculty || "",
+            mode: item.mode,
+            lec_units: item.lec_units || 0,
+            lab_units: item.lab_units || 0,
+          }));
+
+          const { error: insertErr } = await supabase.from("subjects").upsert(newSubs, { onConflict: "id" });
+          if (!insertErr) {
+            saveCache(KEYS.subjects, newSubs);
+          }
+        }
+      } catch (err) {
+        console.warn("Initial curriculum subjects population notice:", err);
       }
     }
 
-    // 3. Fetch announcements from Supabase
+    // 4. Fetch announcements from Supabase
     const { data: annData, error: annErr } = await supabase
       .from("announcements")
       .select("*")
@@ -301,13 +410,22 @@ export async function syncUserAcademicData(user: User) {
       saveCache(KEYS.announcements, DEFAULT_ANNOUNCEMENTS);
     }
 
-    // 4. Fetch award settings from Supabase
+    // 5. Fetch award settings from Supabase
     const { data: awardsData, error: awardsErr } = await supabase
       .from("award_settings")
       .select("*");
 
     if (!awardsErr && awardsData && awardsData.length > 0) {
       saveCache(KEYS.awardSettings, awardsData);
+    }
+
+    // 6. Update local session with active selected semester ID
+    const currentSession = getSession();
+    if (currentSession && (currentSession.id === userId || currentSession.email.toLowerCase() === userEmail)) {
+      saveCache(KEYS.session, {
+        ...currentSession,
+        selected_semester_id: activeSelectedSemId,
+      });
     }
 
     window.dispatchEvent(new Event("sscr_store_synced"));
@@ -542,49 +660,182 @@ export function updateProfile(id: string, data: Partial<User>) {
 // ── Semesters ─────────────────────────────────────────────────────────────
 
 export function getSemesters(userId: string): Semester[] {
-  return loadCache<Semester[]>(KEYS.semesters, []).filter((s) => s.user_id === userId);
+  const session = getSession();
+  const studentNo = (session?.student_number || "").trim();
+  const all = loadCache<Semester[]>(KEYS.semesters, []);
+  return all.filter((s) => s.user_id === userId || (studentNo && s.student_number === studentNo));
 }
 
-export function addSemester(data: Omit<Semester, "id">): Semester {
+export function getSelectedSemesterId(user?: User | null): string | null {
+  const targetUser = user || getSession();
+  if (!targetUser) return null;
+  const userSemesters = getSemesters(targetUser.id);
+  if (!userSemesters.length) return null;
+
+  // 1. Check if user has an explicit selected_semester_id
+  if (targetUser.selected_semester_id) {
+    const matched = userSemesters.find((s) => s.id === targetUser.selected_semester_id);
+    if (matched) return matched.id;
+  }
+
+  // 2. Check for is_active flag in semesters
+  const activeSem = userSemesters.find((s) => s.is_active);
+  if (activeSem) return activeSem.id;
+
+  // 3. Fallback to most recent semester
+  return userSemesters[userSemesters.length - 1].id;
+}
+
+export async function saveSelectedSemester(
+  user: User,
+  semesterId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const studentNo = (user.student_number || "").trim();
+    const userEmail = (user.email || "").trim().toLowerCase();
+    const currentSemesters = loadCache<Semester[]>(KEYS.semesters, []);
+    const targetSem = currentSemesters.find((s) => s.id === semesterId);
+
+    if (!targetSem) {
+      return { success: false, error: "Selected semester not found." };
+    }
+
+    // 1. Update active flags locally
+    const updatedSemesters = currentSemesters.map((s) => {
+      if (s.user_id === user.id || (studentNo && s.student_number === studentNo)) {
+        return { ...s, is_active: s.id === semesterId };
+      }
+      return s;
+    });
+    saveCache(KEYS.semesters, updatedSemesters);
+
+    // 2. Update session cache
+    const currentSession = getSession();
+    if (currentSession) {
+      const updatedUser = {
+        ...currentSession,
+        selected_semester_id: semesterId,
+        selected_academic_year: targetSem.academic_year,
+        selected_semester: targetSem.semester,
+      };
+      saveCache(KEYS.session, updatedUser);
+    }
+
+    // 3. Persist to Supabase user_credentials & semesters in background / async
+    if (userEmail) {
+      await supabase
+        .from("user_credentials")
+        .update({
+          selected_semester_id: semesterId,
+          selected_academic_year: targetSem.academic_year,
+          selected_semester: targetSem.semester,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("email", userEmail);
+    }
+
+    // Update is_active flags on Supabase semesters table
+    const orFilter = studentNo
+      ? `user_id.eq.${user.id},student_number.eq.${studentNo}`
+      : `user_id.eq.${user.id}`;
+
+    await supabase.from("semesters").update({ is_active: false }).or(orFilter);
+    await supabase.from("semesters").update({ is_active: true }).eq("id", semesterId);
+
+    window.dispatchEvent(new Event("sscr_store_synced"));
+    return { success: true };
+  } catch (err: any) {
+    console.error("Save selected semester error:", err);
+    return { success: false, error: err?.message || "Failed to save selected semester to database." };
+  }
+}
+
+export function addSemester(data: Omit<Semester, "id">, user?: User): Semester {
+  const sessionUser = user || getSession();
+  const studentNo = data.student_number || sessionUser?.student_number || "";
+  const semId = uid();
+  const sem: Semester = {
+    ...data,
+    id: semId,
+    user_id: data.user_id || sessionUser?.id || "",
+    student_number: studentNo,
+    is_active: data.is_active ?? true,
+  };
+
   const all = loadCache<Semester[]>(KEYS.semesters, []);
-  const sem: Semester = { ...data, id: uid() };
-  saveCache(KEYS.semesters, [...all, sem]);
+  saveCache(KEYS.semesters, [...all.filter((s) => s.id !== sem.id), sem]);
   window.dispatchEvent(new Event("sscr_store_synced"));
 
-  // Background Supabase sync
+  // Background Supabase sync with guaranteed student_number
   void supabase.from("semesters").upsert([sem], { onConflict: "id" });
   return sem;
 }
 
 export async function createSemester(
   data: Omit<Semester, "id">,
+  user?: User,
 ): Promise<{ success: boolean; data: Semester | null; error?: string }> {
-  const duplicate = getSemesters(data.user_id).find(
+  const sessionUser = user || getSession();
+  const userId = data.user_id || sessionUser?.id || "";
+  const studentNo = data.student_number || sessionUser?.student_number || "";
+
+  if (!userId && !studentNo) {
+    return { success: false, data: null, error: "User identification required." };
+  }
+
+  const existingSemesters = getSemesters(userId);
+  const duplicate = existingSemesters.find(
     (semester) =>
       semester.academic_year.replace("-", "–") === data.academic_year.replace("-", "–") &&
       semester.semester === data.semester,
   );
+
   if (duplicate) {
     return {
       success: false,
-      data: null,
+      data: duplicate,
       error: `${data.academic_year} ${data.semester} already exists.`,
     };
   }
 
-  const semester: Semester = { ...data, id: uid() };
-  const current = loadCache<Semester[]>(KEYS.semesters, []);
-  saveCache(KEYS.semesters, [...current.filter((item) => item.id !== semester.id), semester]);
-  window.dispatchEvent(new Event("sscr_store_synced"));
+  const semesterId = uid();
+  const semester: Semester = {
+    ...data,
+    id: semesterId,
+    user_id: userId,
+    student_number: studentNo || `SSCR-${userId.slice(0, 6)}`,
+    is_active: true,
+    created_at: new Date().toISOString(),
+  };
 
-  // Background Supabase sync
-  void supabase.from("semesters").upsert([semester], { onConflict: "id" });
-  return { success: true, data: semester };
+  try {
+    // 1. Direct Supabase Insert
+    const { error: insertErr } = await supabase.from("semesters").upsert([semester], { onConflict: "id" });
+    if (insertErr) {
+      console.error("Supabase createSemester error:", insertErr);
+      return { success: false, data: null, error: `Database error: ${insertErr.message}` };
+    }
+
+    // 2. Update local state
+    const current = loadCache<Semester[]>(KEYS.semesters, []);
+    saveCache(KEYS.semesters, [...current.filter((item) => item.id !== semester.id), semester]);
+
+    // 3. Mark as active selected semester
+    if (sessionUser) {
+      await saveSelectedSemester(sessionUser, semester.id);
+    }
+
+    window.dispatchEvent(new Event("sscr_store_synced"));
+    return { success: true, data: semester };
+  } catch (err: any) {
+    return { success: false, data: null, error: err?.message || "Failed to create semester." };
+  }
 }
 
 export async function editSemester(
   id: string,
   data: Partial<Semester>,
+  user?: User,
 ): Promise<{ success: boolean; error?: string }> {
   const current = loadCache<Semester[]>(KEYS.semesters, []);
   const target = current.find((semester) => semester.id === id);
@@ -607,32 +858,48 @@ export async function editSemester(
   }
 
   const updatedSem = { ...target, ...data };
-  saveCache(KEYS.semesters, current.map((semester) => (
-    semester.id === id ? updatedSem : semester
-  )));
-  window.dispatchEvent(new Event("sscr_store_synced"));
 
-  // Background Supabase sync
-  void supabase.from("semesters").update({
-    academic_year: updatedSem.academic_year,
-    semester: updatedSem.semester,
-  }).eq("id", id);
+  try {
+    const { error: updateErr } = await supabase.from("semesters").update({
+      academic_year: updatedSem.academic_year,
+      semester: updatedSem.semester,
+      is_active: updatedSem.is_active,
+    }).eq("id", id);
 
-  return { success: true };
+    if (updateErr) {
+      return { success: false, error: updateErr.message };
+    }
+
+    saveCache(KEYS.semesters, current.map((semester) => (
+      semester.id === id ? updatedSem : semester
+    )));
+    window.dispatchEvent(new Event("sscr_store_synced"));
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to update semester." };
+  }
 }
 
-export async function removeSemester(id: string): Promise<{ success: boolean; error?: string }> {
-  const semesters = loadCache<Semester[]>(KEYS.semesters, []);
-  const subjects = loadCache<Subject[]>(KEYS.subjects, []);
-  saveCache(KEYS.semesters, semesters.filter((semester) => semester.id !== id));
-  saveCache(KEYS.subjects, subjects.filter((subject) => subject.semester_id !== id));
-  window.dispatchEvent(new Event("sscr_store_synced"));
+export async function removeSemester(id: string, user?: User): Promise<{ success: boolean; error?: string }> {
+  try {
+    // 1. Delete from Supabase
+    const { error: delSubsErr } = await supabase.from("subjects").delete().eq("semester_id", id);
+    const { error: delSemErr } = await supabase.from("semesters").delete().eq("id", id);
 
-  // Background Supabase delete
-  void supabase.from("semesters").delete().eq("id", id);
-  void supabase.from("subjects").delete().eq("semester_id", id);
+    if (delSemErr) {
+      return { success: false, error: delSemErr.message };
+    }
 
-  return { success: true };
+    const semesters = loadCache<Semester[]>(KEYS.semesters, []);
+    const subjects = loadCache<Subject[]>(KEYS.subjects, []);
+    saveCache(KEYS.semesters, semesters.filter((semester) => semester.id !== id));
+    saveCache(KEYS.subjects, subjects.filter((subject) => subject.semester_id !== id));
+    window.dispatchEvent(new Event("sscr_store_synced"));
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to delete semester." };
+  }
 }
 
 export function updateSemester(id: string, data: Partial<Semester>) {
@@ -687,32 +954,151 @@ export function getAllSubjects(userId: string): Subject[] {
     );
 }
 
-export function addSubject(data: Omit<Subject, "id">): Subject {
+export async function saveSubject(
+  data: Omit<Subject, "id">,
+  user?: User,
+  id?: string
+): Promise<{ success: boolean; data: Subject | null; error?: string }> {
+  const sessionUser = user || getSession();
+  const studentNo = data.student_number || sessionUser?.student_number || "";
+  const userId = data.user_id || sessionUser?.id || "";
+
+  const subId = id || uid();
+  const formattedSubject: Subject = {
+    ...data,
+    id: subId,
+    user_id: userId,
+    student_number: studentNo || `SSCR-${userId.slice(0, 6)}`,
+    units: Number(data.units) || 3,
+    grade: Number(data.grade) || 0,
+    status: data.status || "Currently Taking",
+    block: data.block || "A",
+    schedule_day: data.schedule_day || data.schedule_days || "",
+    schedule_days: data.schedule_days || data.schedule_day || "",
+    schedule_time: data.schedule_time || "",
+    schedule_start: data.schedule_start || "",
+    schedule_end: data.schedule_end || "",
+    room: data.room || "",
+    faculty: data.faculty || "",
+    mode: data.mode || "",
+    lec_units: Number(data.lec_units) || 0,
+    lab_units: Number(data.lab_units) || 0,
+    updated_at: new Date().toISOString(),
+  };
+
+  try {
+    const { error: upsertErr } = await supabase.from("subjects").upsert([
+      {
+        id: formattedSubject.id,
+        semester_id: formattedSubject.semester_id,
+        user_id: formattedSubject.user_id,
+        student_number: formattedSubject.student_number,
+        subject_code: formattedSubject.subject_code,
+        subject_name: formattedSubject.subject_name,
+        units: formattedSubject.units,
+        grade: formattedSubject.grade,
+        status: formattedSubject.status,
+        block: formattedSubject.block,
+        subject_block: formattedSubject.block,
+        schedule_day: formattedSubject.schedule_day,
+        schedule_days: formattedSubject.schedule_days,
+        schedule_time: formattedSubject.schedule_time,
+        schedule_start: formattedSubject.schedule_start,
+        schedule_end: formattedSubject.schedule_end,
+        room: formattedSubject.room,
+        faculty: formattedSubject.faculty,
+        mode: formattedSubject.mode,
+        lec_units: formattedSubject.lec_units,
+        lab_units: formattedSubject.lab_units,
+        updated_at: formattedSubject.updated_at,
+      }
+    ], { onConflict: "id" });
+
+    if (upsertErr) {
+      console.error("Supabase saveSubject error:", upsertErr);
+      return { success: false, data: null, error: upsertErr.message };
+    }
+
+    const currentSubs = loadCache<Subject[]>(KEYS.subjects, []);
+    const updatedSubs = id
+      ? currentSubs.map((s) => (s.id === id ? formattedSubject : s))
+      : [...currentSubs.filter((s) => s.id !== subId), formattedSubject];
+
+    saveCache(KEYS.subjects, updatedSubs);
+    window.dispatchEvent(new Event("sscr_store_synced"));
+
+    return { success: true, data: formattedSubject };
+  } catch (err: any) {
+    return { success: false, data: null, error: err?.message || "Failed to save subject to database." };
+  }
+}
+
+export function addSubject(data: Omit<Subject, "id">, user?: User): Subject {
+  const sessionUser = user || getSession();
+  const studentNo = data.student_number || sessionUser?.student_number || "";
+  const userId = data.user_id || sessionUser?.id || "";
+
   const all = loadCache<Subject[]>(KEYS.subjects, []);
-  const sub: Subject = { ...data, id: uid() };
+  const sub: Subject = {
+    ...data,
+    id: uid(),
+    user_id: userId,
+    student_number: studentNo || `SSCR-${userId.slice(0, 6)}`,
+  };
   saveCache(KEYS.subjects, [...all, sub]);
   window.dispatchEvent(new Event("sscr_store_synced"));
 
-  // Background Supabase sync
+  // Background Supabase sync with complete payload
   void supabase.from("subjects").upsert([
     {
       id: sub.id,
       semester_id: sub.semester_id,
-      user_id: sub.user_id || "",
-      student_number: sub.student_number || "",
+      user_id: sub.user_id,
+      student_number: sub.student_number,
       subject_code: sub.subject_code,
       subject_name: sub.subject_name,
       units: Number(sub.units) || 3,
       grade: Number(sub.grade) || 0,
       status: sub.status || "Currently Taking",
+      block: sub.block || "A",
       room: sub.room || "",
       schedule_day: sub.schedule_day || sub.schedule_days || "",
-      schedule_start: sub.schedule_start || "",
-      schedule_end: sub.schedule_end || "",
+      schedule_days: sub.schedule_days || sub.schedule_day || "",
+      schedule_time: sub.schedule_time || "",
+      faculty: sub.faculty || "",
+      mode: sub.mode || "",
+      lec_units: Number(sub.lec_units) || 0,
+      lab_units: Number(sub.lab_units) || 0,
     },
   ], { onConflict: "id" });
 
   return sub;
+}
+
+export async function updateSubjectAsync(
+  id: string,
+  data: Partial<Subject>,
+  user?: User
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const payload: any = { ...data, updated_at: new Date().toISOString() };
+    if (payload.units !== undefined) payload.units = Number(payload.units);
+    if (payload.grade !== undefined) payload.grade = Number(payload.grade);
+
+    const { error: updateErr } = await supabase.from("subjects").update(payload).eq("id", id);
+    if (updateErr) {
+      return { success: false, error: updateErr.message };
+    }
+
+    const all = loadCache<Subject[]>(KEYS.subjects, []);
+    const updated = all.map((s) => (s.id === id ? { ...s, ...data } : s));
+    saveCache(KEYS.subjects, updated);
+    window.dispatchEvent(new Event("sscr_store_synced"));
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to update subject." };
+  }
 }
 
 export function updateSubject(id: string, data: Partial<Subject>) {
@@ -728,14 +1114,36 @@ export function updateSubject(id: string, data: Partial<Subject>) {
   if (data.grade !== undefined) payload.grade = Number(data.grade);
   if (data.status !== undefined) payload.status = data.status;
   if (data.room !== undefined) payload.room = data.room;
+  if (data.block !== undefined) payload.block = data.block;
   if (data.schedule_day !== undefined || data.schedule_days !== undefined) {
     payload.schedule_day = data.schedule_day || data.schedule_days;
+    payload.schedule_days = data.schedule_day || data.schedule_days;
   }
+  if (data.schedule_time !== undefined) payload.schedule_time = data.schedule_time;
   if (data.schedule_start !== undefined) payload.schedule_start = data.schedule_start;
   if (data.schedule_end !== undefined) payload.schedule_end = data.schedule_end;
+  if (data.faculty !== undefined) payload.faculty = data.faculty;
+  if (data.mode !== undefined) payload.mode = data.mode;
   payload.updated_at = new Date().toISOString();
 
   void supabase.from("subjects").update(payload).eq("id", id);
+}
+
+export async function deleteSubjectAsync(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error: delErr } = await supabase.from("subjects").delete().eq("id", id);
+    if (delErr) {
+      return { success: false, error: delErr.message };
+    }
+
+    const all = loadCache<Subject[]>(KEYS.subjects, []);
+    saveCache(KEYS.subjects, all.filter((s) => s.id !== id));
+    window.dispatchEvent(new Event("sscr_store_synced"));
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to delete subject." };
+  }
 }
 
 export function deleteSubject(id: string) {
@@ -744,6 +1152,75 @@ export function deleteSubject(id: string) {
   window.dispatchEvent(new Event("sscr_store_synced"));
 
   void supabase.from("subjects").delete().eq("id", id);
+}
+
+/**
+ * Copies template subjects from the official BSIT curriculum into the student's personal subjects table in Supabase
+ */
+export async function importCurriculumForStudent(
+  user: User,
+  semesterId: string,
+  yearLevel: string,
+  block: string = "A"
+): Promise<{ success: boolean; importedCount: number; error?: string }> {
+  try {
+    const studentNo = (user.student_number || "").trim() || `SSCR-${user.id.slice(0, 6)}`;
+    const userId = user.id;
+
+    const normalizedYear = yearLevel.startsWith("BSIT") ? yearLevel : `BSIT ${yearLevel}`;
+    const templateItems = OFFICIAL_BSIT_CURRICULUM_SEED.filter((c) => c.year_level === normalizedYear);
+
+    if (!templateItems.length) {
+      return { success: false, importedCount: 0, error: `No curriculum template found for ${normalizedYear}.` };
+    }
+
+    // Filter template items for the chosen block if specified, or all items for that cohort
+    const existingSubs = getSubjects(semesterId);
+    const newItemsToImport = templateItems.filter(
+      (item) => !existingSubs.some((s) => s.subject_code.toUpperCase() === item.subject_code.toUpperCase())
+    );
+
+    if (!newItemsToImport.length) {
+      return { success: true, importedCount: 0 };
+    }
+
+    const newSubsToInsert = newItemsToImport.map((item, idx) => ({
+      id: `sub_${studentNo.replace(/[^a-zA-Z0-9]/g, "_")}_${item.subject_code}_${idx}_${Date.now()}`,
+      semester_id: semesterId,
+      user_id: userId,
+      student_number: studentNo,
+      subject_code: item.subject_code,
+      subject_name: item.subject_description,
+      units: item.total_units || 3,
+      grade: 0,
+      status: "Currently Taking",
+      block: item.block || block || "A",
+      schedule_day: item.days,
+      schedule_days: item.days,
+      schedule_time: item.time,
+      room: item.room,
+      faculty: item.faculty || "",
+      mode: item.mode,
+      lec_units: item.lec_units || 0,
+      lab_units: item.lab_units || 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }));
+
+    const { error: insertErr } = await supabase.from("subjects").upsert(newSubsToInsert, { onConflict: "id" });
+    if (insertErr) {
+      console.error("Supabase importCurriculumForStudent error:", insertErr);
+      return { success: false, importedCount: 0, error: insertErr.message };
+    }
+
+    const currentSubs = loadCache<Subject[]>(KEYS.subjects, []);
+    saveCache(KEYS.subjects, [...currentSubs, ...newSubsToInsert]);
+    window.dispatchEvent(new Event("sscr_store_synced"));
+
+    return { success: true, importedCount: newSubsToInsert.length };
+  } catch (err: any) {
+    return { success: false, importedCount: 0, error: err?.message || "Failed to import curriculum subjects." };
+  }
 }
 
 // ── Calculations & Awards ─────────────────────────────────────────────────

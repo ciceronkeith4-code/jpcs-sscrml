@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, Button, PageHeader, Badge, Alert, AwardDisplay, Select } from "../components/ui";
-import { getSemesters, getSubjects, getAwardSettings, calculateGA, checkAward, updateSubject } from "../store";
+import { getSemesters, getSubjects, getAwardSettings, calculateGA, checkAward, updateSubject, getSelectedSemesterId } from "../store";
 import type { User, Subject } from "../../types";
 
 export function SimulatorPage({ user }: { user: User }) {
@@ -13,7 +13,7 @@ export function SimulatorPage({ user }: { user: User }) {
   }, []);
 
   const semesters = getSemesters(user.id);
-  const [selectedSemId, setSelectedSemId] = useState(semesters[semesters.length - 1]?.id ?? "");
+  const [selectedSemId, setSelectedSemId] = useState(() => getSelectedSemesterId(user) ?? semesters[semesters.length - 1]?.id ?? "");
   const awardSettings = getAwardSettings();
 
   const [originalSubjects, setOriginalSubjects] = useState<Subject[]>([]);

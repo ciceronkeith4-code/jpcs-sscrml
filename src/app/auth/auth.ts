@@ -121,6 +121,9 @@ export async function startEmailLogin(email: string, password: string): Promise<
       mustChangePassword: false,
       officer_position: effectivePos,
       profile_photo: assignedPhoto,
+      selected_semester_id: dbCredUser.selected_semester_id || undefined,
+      selected_academic_year: dbCredUser.selected_academic_year || undefined,
+      selected_semester: dbCredUser.selected_semester || undefined,
     };
 
     saveCache("sscr_session", sessionUser);

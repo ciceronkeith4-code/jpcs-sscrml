@@ -8,9 +8,10 @@ import {
 import {
   getSemesters, createSemester, editSemester, removeSemester,
   getSubjects, calculateGA, checkAward, getAwardSettings, getCurriculum,
-  addSubject, updateSubject, deleteSubject,
+  saveSubject, addSubject, updateSubject, deleteSubject, deleteSubjectAsync,
+  saveSelectedSemester, getSelectedSemesterId, importCurriculumForStudent,
 } from "../store";
-import type { User, Semester } from "../../types";
+import type { User, Semester, Subject } from "../../types";
 
 const today = new Date();
 const currentAcademicYearStart = today.getMonth() + 1 >= 6
@@ -31,6 +32,19 @@ const SEMESTER_OPTIONS = [
   { value: "Summer", label: "Summer" },
 ];
 
+const YEAR_LEVEL_OPTIONS = [
+  { value: "BSIT 1", label: "1st Year (BSIT 1)" },
+  { value: "BSIT 2", label: "2nd Year (BSIT 2)" },
+  { value: "BSIT 3", label: "3rd Year (BSIT 3)" },
+  { value: "BSIT 4", label: "4th Year (BSIT 4)" },
+];
+
+const BLOCK_OPTIONS = [
+  { value: "A", label: "Block A" },
+  { value: "B", label: "Block B" },
+  { value: "AB", label: "Block AB" },
+];
+
 export function SemestersPage({ user }: { user: User }) {
   const navigate = useNavigate();
   const [semesters, setSemesters] = useState(() => getSemesters(user.id));
@@ -41,7 +55,6 @@ export function SemestersPage({ user }: { user: User }) {
   const [form, setForm] = useState({ academic_year: DEFAULT_ACADEMIC_YEAR, semester: "First Semester" });
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState("");
-
 
   const refresh = useCallback(() => setSemesters(getSemesters(user.id)), [user.id]);
 
@@ -68,9 +81,9 @@ export function SemestersPage({ user }: { user: User }) {
     setActionError("");
 
     const result = modal === "add"
-      ? await createSemester({ ...form, user_id: user.id })
+      ? await createSemester({ ...form, user_id: user.id }, user)
       : editing
-        ? await editSemester(editing.id, form)
+        ? await editSemester(editing.id, form, user)
         : { success: false, error: "No semester was selected." };
 
     setSaving(false);
@@ -88,7 +101,7 @@ export function SemestersPage({ user }: { user: User }) {
     if (!deleting) return;
     setSaving(true);
     setActionError("");
-    const result = await removeSemester(deleting.id);
+    const result = await removeSemester(deleting.id, user);
     setSaving(false);
     if (!result.success) {
       setActionError(result.error || "Unable to delete semester.");
@@ -216,28 +229,60 @@ export function SubjectsPage({ user }: { user: User }) {
   const { semesterId: paramSemId } = useParams();
   const [tick, setTick] = useState(0);
   const semesters = getSemesters(user.id);
-  const [selectedSemId, setSelectedSemId] = useState(() => paramSemId ?? semesters[semesters.length - 1]?.id ?? "");
-  const [subjects, setSubjects] = useState(() => selectedSemId ? getSubjects(selectedSemId) : []);
+  const initialSemId = paramSemId ?? getSelectedSemesterId(user) ?? semesters[semesters.length - 1]?.id ?? "";
+  const [selectedSemId, setSelectedSemId] = useState<string>(initialSemId);
+  const [subjects, setSubjects] = useState<Subject[]>(() => selectedSemId ? getSubjects(selectedSemId) : []);
   const [modal, setModal] = useState<"add" | "edit" | "import" | null>(null);
+  const [curriculumModalOpen, setCurriculumModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [form, setForm] = useState({ subject_code: "", subject_name: "", units: "3", grade: "", status: "Currently Taking" as "Currently Taking" | "Waiting" | "Graded" });
-  const [ocrModalOpen, setOcrModalOpen] = useState(false);
-  const awardSettings = getAwardSettings();
+  const [saving, setSaving] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  // Subject Add/Edit Form State
+  const [form, setForm] = useState({
+    subject_code: "",
+    subject_name: "",
+    units: "3",
+    grade: "",
+    status: "Currently Taking" as "Currently Taking" | "Waiting" | "Graded",
+    block: "A" as "A" | "B" | "AB",
+    schedule_days: "",
+    schedule_time: "",
+    room: "",
+    faculty: "",
+  });
+
+  // Change Curriculum Form State
+  const defaultYearTag = user.year_level === "4" ? "BSIT 4" : user.year_level === "3" ? "BSIT 3" : user.year_level === "2" ? "BSIT 2" : "BSIT 1";
+  const [currForm, setCurrForm] = useState({
+    academic_year: DEFAULT_ACADEMIC_YEAR,
+    semester: "First Semester",
+    year_level: defaultYearTag,
+    block: "A",
+    auto_import: true,
+  });
+
+  const awardSettings = getAwardSettings();
   const currentSem = semesters.find((s) => s.id === selectedSemId);
   const ga = calculateGA(subjects);
   const award = checkAward(ga, subjects, awardSettings);
 
-  const refreshSubjects = (semId: string) => {
+  const refreshSubjects = useCallback((semId: string) => {
+    if (!semId) {
+      setSubjects([]);
+      return;
+    }
     setSubjects(getSubjects(semId));
-  };
+  }, []);
 
   useEffect(() => {
     if (!selectedSemId && semesters.length > 0) {
-      setSelectedSemId(semesters[semesters.length - 1]?.id);
+      const activeId = getSelectedSemesterId(user) || semesters[semesters.length - 1]?.id;
+      setSelectedSemId(activeId);
+      refreshSubjects(activeId);
     }
-  }, [semesters, selectedSemId]);
+  }, [semesters, selectedSemId, user, refreshSubjects]);
 
   useEffect(() => {
     const handleSync = () => {
@@ -246,16 +291,18 @@ export function SubjectsPage({ user }: { user: User }) {
     };
     window.addEventListener("sscr_store_synced", handleSync);
     return () => window.removeEventListener("sscr_store_synced", handleSync);
-  }, [selectedSemId]);
+  }, [selectedSemId, refreshSubjects]);
 
-  const handleSemChange = (semId: string) => {
+  const handleSemChange = async (semId: string) => {
     setSelectedSemId(semId);
     refreshSubjects(semId);
+    if (semId) {
+      await saveSelectedSemester(user, semId);
+    }
   };
+
   const [importYear, setImportYear] = useState("1");
   const [importSem, setImportSem] = useState("First Semester");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-
   const [selectedCurriculumId, setSelectedCurriculumId] = useState("");
 
   const curriculumItems = currentSem
@@ -267,13 +314,26 @@ export function SubjectsPage({ user }: { user: User }) {
   );
 
   const openAdd = () => {
+    setStatusMessage(null);
     setEditingId(null);
     setSelectedCurriculumId("");
-    setForm({ subject_code: "", subject_name: "", units: "3", grade: "", status: "Currently Taking" });
+    setForm({
+      subject_code: "",
+      subject_name: "",
+      units: "3",
+      grade: "",
+      status: "Currently Taking",
+      block: "A",
+      schedule_days: "",
+      schedule_time: "",
+      room: "",
+      faculty: "",
+    });
     setModal("add");
   };
 
   const openEdit = (id: string) => {
+    setStatusMessage(null);
     const sub = subjects.find((s) => s.id === id);
     if (!sub) return;
     setEditingId(id);
@@ -284,7 +344,12 @@ export function SubjectsPage({ user }: { user: User }) {
       subject_name: sub.subject_name,
       units: String(sub.units),
       grade: sub.status === "Graded" || sub.status === undefined ? String(sub.grade) : "",
-      status: sub.status ?? "Graded"
+      status: sub.status ?? "Graded",
+      block: (sub.block as any) || "A",
+      schedule_days: sub.schedule_days || sub.schedule_day || "",
+      schedule_time: sub.schedule_time || "",
+      room: sub.room || "",
+      faculty: sub.faculty || "",
     });
     setModal("edit");
   };
@@ -298,6 +363,11 @@ export function SubjectsPage({ user }: { user: User }) {
         subject_code: item.subject_code,
         subject_name: item.subject_name,
         units: String(item.units),
+        block: (item.block as any) || f.block,
+        schedule_days: item.schedule_days || "",
+        schedule_time: item.schedule_time || "",
+        room: item.room || "",
+        faculty: item.faculty || "",
       }));
     } else {
       setForm((f) => ({
@@ -313,43 +383,141 @@ export function SubjectsPage({ user }: { user: User }) {
     (item) => String(item.year_level) === String(importYear) && item.semester === importSem
   );
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!selectedSemId) return;
+    setSaving(true);
+    setStatusMessage(null);
+
     const parsedGrade = form.grade.trim() !== "" ? parseFloat(form.grade) : 0;
-    const data = {
+    const data: Omit<Subject, "id"> = {
       semester_id: selectedSemId,
-      subject_code: form.subject_code,
-      subject_name: form.subject_name,
+      user_id: user.id,
+      student_number: user.student_number,
+      subject_code: form.subject_code.trim(),
+      subject_name: form.subject_name.trim(),
       units: parseInt(form.units) || 3,
       grade: form.status === "Graded" ? (isNaN(parsedGrade) ? 0 : parsedGrade) : 0,
       status: form.status,
+      block: form.block,
+      schedule_days: form.schedule_days,
+      schedule_time: form.schedule_time,
+      room: form.room,
+      faculty: form.faculty,
     };
-    if (modal === "add") addSubject(data);
-    else if (editingId) updateSubject(editingId, data);
+
+    const result = await saveSubject(data, user, editingId || undefined);
+    setSaving(false);
+
+    if (!result.success) {
+      setStatusMessage({ type: "error", text: result.error || "Unable to save subject to database." });
+      return;
+    }
+
+    setStatusMessage({ type: "success", text: "Subject saved successfully." });
     setModal(null);
     refreshSubjects(selectedSemId);
   };
 
-  const handleDelete = () => {
-    if (deleting) deleteSubject(deleting);
+  const handleDelete = async () => {
+    if (!deleting) return;
+    setSaving(true);
+    setStatusMessage(null);
+
+    const result = await deleteSubjectAsync(deleting);
+    setSaving(false);
+
+    if (!result.success) {
+      setStatusMessage({ type: "error", text: result.error || "Unable to remove subject." });
+      return;
+    }
+
     setDeleting(null);
+    setStatusMessage({ type: "success", text: "Subject removed successfully." });
     refreshSubjects(selectedSemId);
   };
 
-  const handleImport = (items: typeof curriculumItems) => {
+  const handleImport = async (items: typeof curriculumItems) => {
+    if (!selectedSemId) return;
+    setSaving(true);
+    setStatusMessage(null);
+
+    let count = 0;
     for (const item of items) {
       if (!subjects.find((s) => s.subject_code === item.subject_code)) {
-        addSubject({
+        await saveSubject({
           semester_id: selectedSemId,
+          user_id: user.id,
+          student_number: user.student_number,
           subject_code: item.subject_code,
           subject_name: item.subject_name,
           units: item.units,
           grade: 0,
           status: "Currently Taking",
-        });
+          block: (item.block as any) || "A",
+          schedule_days: item.schedule_days,
+          schedule_time: item.schedule_time,
+          room: item.room,
+          faculty: item.faculty,
+        }, user);
+        count++;
       }
     }
+
+    setSaving(false);
+    setStatusMessage({ type: "success", text: `Successfully imported ${count} subject${count !== 1 ? "s" : ""} from curriculum.` });
     refreshSubjects(selectedSemId);
     setModal(null);
+  };
+
+  // [ Change Curriculum / Semester ] Modal Flow
+  const handleApplyCurriculumChange = async () => {
+    setSaving(true);
+    setStatusMessage(null);
+
+    try {
+      // 1. Check if semester exists, create if not
+      let targetSem = semesters.find(
+        (s) =>
+          s.academic_year.replace("-", "–") === currForm.academic_year.replace("-", "–") &&
+          s.semester === currForm.semester
+      );
+
+      if (!targetSem) {
+        const createRes = await createSemester({
+          academic_year: currForm.academic_year,
+          semester: currForm.semester,
+          user_id: user.id,
+          student_number: user.student_number,
+          year_level: currForm.year_level.replace("BSIT ", "").trim(),
+          course: "BSIT",
+        }, user);
+
+        if (!createRes.success || !createRes.data) {
+          throw new Error(createRes.error || "Failed to create new semester.");
+        }
+        targetSem = createRes.data;
+      }
+
+      // 2. Persist active semester selection in Supabase
+      await saveSelectedSemester(user, targetSem.id);
+      setSelectedSemId(targetSem.id);
+
+      // 3. If auto_import requested and semester has no subjects, import curriculum template
+      if (currForm.auto_import) {
+        const existingSubjects = getSubjects(targetSem.id);
+        if (existingSubjects.length === 0) {
+          await importCurriculumForStudent(user, targetSem.id, currForm.year_level, currForm.block);
+        }
+      }
+
+      setSaving(false);
+      setCurriculumModalOpen(false);
+      setStatusMessage({ type: "success", text: `Active curriculum changed to ${currForm.academic_year} · ${currForm.semester} (${currForm.year_level}).` });
+      refreshSubjects(targetSem.id);
+    } catch (err: any) {
+      setSaving(false);
+      setStatusMessage({ type: "error", text: err?.message || "Failed to update curriculum and semester." });
+    }
   };
 
   const semOptions = [
@@ -361,28 +529,63 @@ export function SubjectsPage({ user }: { user: User }) {
     <div>
       <PageHeader
         title="Subjects"
-        subtitle="Record and manage your final grades."
+        subtitle="Record and manage your subjects, schedules, and final grades."
         action={
-          selectedSemId && (
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setModal("import")}>Import from Curriculum</Button>
-              <Button size="sm" onClick={openAdd}>Add Subject</Button>
-            </div>
-          )
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurriculumModalOpen(true)}
+              className="border-primary/40 text-primary hover:bg-primary/5 font-bold"
+            >
+              <svg className="size-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              Change Semester / Curriculum
+            </Button>
+            {selectedSemId && (
+              <>
+                <Button variant="outline" size="sm" onClick={() => setModal("import")}>Import from Curriculum</Button>
+                <Button size="sm" onClick={openAdd}>Add Subject</Button>
+              </>
+            )}
+          </div>
         }
       />
 
-      {/* Semester selector */}
-      <div className="mb-6">
-        <Select
-          value={selectedSemId}
-          onChange={(e) => handleSemChange(e.target.value)}
-          options={semOptions}
-        />
+      {statusMessage && (
+        <Alert variant={statusMessage.type} className="mb-5">
+          {statusMessage.text}
+        </Alert>
+      )}
+
+      {/* Semester selector & Change Curriculum Bar */}
+      <div className="mb-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="flex-1">
+          <Select
+            value={selectedSemId}
+            onChange={(e) => void handleSemChange(e.target.value)}
+            options={semOptions}
+          />
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => setCurriculumModalOpen(true)}
+          className="shrink-0 text-xs font-semibold"
+        >
+          <svg className="size-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+          </svg>
+          Change Curriculum
+        </Button>
       </div>
 
       {!selectedSemId ? (
-        <EmptyState title="Select a semester" description="Choose a semester above to view and manage its subjects." />
+        <EmptyState
+          title="No Active Semester Selected"
+          description="Choose a semester above or click 'Change Semester / Curriculum' to set up your subjects."
+          action={<Button onClick={() => setCurriculumModalOpen(true)}>Set Up Curriculum</Button>}
+        />
       ) : (
         <>
           {/* Summary row */}
@@ -446,8 +649,8 @@ export function SubjectsPage({ user }: { user: User }) {
                           </td>
                           <td className="px-5 py-3.5 text-foreground font-bold">{sub.subject_name}</td>
                           <td className="px-5 py-3.5 text-center text-muted-foreground font-bold">{sub.units}</td>
-                          <td className="px-5 py-3.5 text-muted-foreground whitespace-nowrap">{sub.schedule_days || "—"}</td>
-                          <td className="px-5 py-3.5 text-muted-foreground whitespace-nowrap">{sub.schedule_time || "—"}</td>
+                          <td className="px-5 py-3.5 text-muted-foreground whitespace-nowrap">{sub.schedule_days || sub.schedule_day || "—"}</td>
+                          <td className="px-5 py-3.5 text-muted-foreground whitespace-nowrap">{sub.schedule_time || (sub.schedule_start && sub.schedule_end ? `${sub.schedule_start} - ${sub.schedule_end}` : "—")}</td>
                           <td className="px-5 py-3.5 text-muted-foreground whitespace-nowrap">{sub.room || "—"}</td>
                           <td className="px-5 py-3.5 text-center">
                             {sub.status === "Currently Taking" ? (
@@ -470,10 +673,10 @@ export function SubjectsPage({ user }: { user: User }) {
                           </td>
                           <td className="px-5 py-3.5 text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <button onClick={() => openEdit(sub.id)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                              <button onClick={() => openEdit(sub.id)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer">
                                 <svg className="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                               </button>
-                              <button onClick={() => setDeleting(sub.id)} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+                              <button onClick={() => setDeleting(sub.id)} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer">
                                 <svg className="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                               </button>
                             </div>
@@ -486,16 +689,87 @@ export function SubjectsPage({ user }: { user: User }) {
               </div>
             ) : (
               <EmptyState
-                title="No subjects yet"
-                description="Add subjects manually or import from the official curriculum."
-                action={<Button size="sm" onClick={openAdd}>Add Subject</Button>}
+                title="No subjects yet in this semester"
+                description="Add subjects manually, import from official curriculum, or use Change Curriculum."
+                action={
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setModal("import")}>Import Curriculum</Button>
+                    <Button size="sm" onClick={openAdd}>Add Subject</Button>
+                  </div>
+                }
               />
             )}
           </Card>
         </>
       )}
 
-      {/* Subject form modal */}
+      {/* ── [ Change Curriculum / Semester ] Modal ──────────────────── */}
+      <Modal
+        open={curriculumModalOpen}
+        onClose={() => !saving && setCurriculumModalOpen(false)}
+        title="Change Semester / Curriculum"
+        size="md"
+      >
+        <div className="p-6 flex flex-col gap-4">
+          <p className="text-xs text-muted-foreground">
+            Select your academic term and official curriculum cohort. Your selection will be permanently saved to Supabase.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Select
+              label="Academic Year"
+              value={currForm.academic_year}
+              onChange={(e) => setCurrForm((f) => ({ ...f, academic_year: e.target.value }))}
+              options={ACADEMIC_YEARS}
+            />
+            <Select
+              label="Semester"
+              value={currForm.semester}
+              onChange={(e) => setCurrForm((f) => ({ ...f, semester: e.target.value }))}
+              options={SEMESTER_OPTIONS}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Select
+              label="Curriculum Year Level"
+              value={currForm.year_level}
+              onChange={(e) => setCurrForm((f) => ({ ...f, year_level: e.target.value }))}
+              options={YEAR_LEVEL_OPTIONS}
+            />
+            <Select
+              label="Section / Block"
+              value={currForm.block}
+              onChange={(e) => setCurrForm((f) => ({ ...f, block: e.target.value }))}
+              options={BLOCK_OPTIONS}
+            />
+          </div>
+
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex items-center justify-between">
+            <div>
+              <span className="text-xs font-bold text-slate-800 block">Auto-Populate Subjects</span>
+              <span className="text-[11px] text-slate-500 block">Copy official BSIT curriculum subjects into your semester load</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={currForm.auto_import}
+              onChange={(e) => setCurrForm((f) => ({ ...f, auto_import: e.target.checked }))}
+              className="size-4 text-[#800000] rounded focus:ring-[#800000] cursor-pointer"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="flex-1" onClick={() => setCurriculumModalOpen(false)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button className="flex-1" onClick={handleApplyCurriculumChange} loading={saving}>
+              Save & Apply Curriculum
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── Subject Add/Edit Modal ─────────────────────────────────── */}
       <Modal open={modal === "add" || modal === "edit"} onClose={() => setModal(null)} title={modal === "add" ? "Add Subject" : "Edit Subject"} size="sm">
         <div className="p-6 flex flex-col gap-4">
           
@@ -514,16 +788,28 @@ export function SubjectsPage({ user }: { user: User }) {
             />
           )}
 
-          <Input
-            label="Subject Code"
-            placeholder="CS 411"
-            value={form.subject_code}
-            onChange={(e) => setForm((f) => ({ ...f, subject_code: e.target.value }))}
-          />
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <Input
+                label="Subject Code"
+                placeholder="ITP123"
+                value={form.subject_code}
+                onChange={(e) => setForm((f) => ({ ...f, subject_code: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Select
+                label="Block"
+                value={form.block}
+                onChange={(e) => setForm((f) => ({ ...f, block: e.target.value as any }))}
+                options={BLOCK_OPTIONS}
+              />
+            </div>
+          </div>
 
           <Input
             label="Subject Name"
-            placeholder="Capstone Project 2"
+            placeholder="System Administration & Maintenance"
             value={form.subject_name}
             onChange={(e) => setForm((f) => ({ ...f, subject_name: e.target.value }))}
           />
@@ -547,6 +833,36 @@ export function SubjectsPage({ user }: { user: User }) {
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Schedule Days"
+              placeholder="M/T/W/TH"
+              value={form.schedule_days}
+              onChange={(e) => setForm((f) => ({ ...f, schedule_days: e.target.value }))}
+            />
+            <Input
+              label="Schedule Time"
+              placeholder="9:00 - 10:30"
+              value={form.schedule_time}
+              onChange={(e) => setForm((f) => ({ ...f, schedule_time: e.target.value }))}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Room"
+              placeholder="NETLAB"
+              value={form.room}
+              onChange={(e) => setForm((f) => ({ ...f, room: e.target.value }))}
+            />
+            <Input
+              label="Faculty"
+              placeholder="Frederick Zamora"
+              value={form.faculty}
+              onChange={(e) => setForm((f) => ({ ...f, faculty: e.target.value }))}
+            />
+          </div>
+
           {form.status === "Graded" && (
             <Input
               label="Final Grade (0–100)"
@@ -560,13 +876,13 @@ export function SubjectsPage({ user }: { user: User }) {
           )}
 
           <div className="flex gap-3 pt-2">
-            <Button variant="outline" className="flex-1" onClick={() => setModal(null)}>Cancel</Button>
-            <Button className="flex-1" onClick={handleSave} disabled={!form.subject_code || !form.subject_name}>Save</Button>
+            <Button variant="outline" className="flex-1" onClick={() => setModal(null)} disabled={saving}>Cancel</Button>
+            <Button className="flex-1" onClick={handleSave} disabled={!form.subject_code || !form.subject_name} loading={saving}>Save to Database</Button>
           </div>
         </div>
       </Modal>
 
-      {/* Import from curriculum modal */}
+      {/* ── Import from curriculum modal ─────────────────────────────── */}
       <Modal open={modal === "import"} onClose={() => setModal(null)} title="Import from Curriculum" size="md">
         <div className="p-6">
           <p className="text-xs text-muted-foreground mb-4">Select Year Level and Semester cohorts from the official curriculum to import subjects.</p>
@@ -619,8 +935,8 @@ export function SubjectsPage({ user }: { user: User }) {
                 </div>
               </div>
               <div className="flex gap-3">
-                <Button variant="outline" className="flex-1" onClick={() => setModal(null)}>Cancel</Button>
-                <Button className="flex-1" onClick={() => handleImport(filteredImportItems)}>Import All</Button>
+                <Button variant="outline" className="flex-1" onClick={() => setModal(null)} disabled={saving}>Cancel</Button>
+                <Button className="flex-1" onClick={() => handleImport(filteredImportItems)} loading={saving}>Import All</Button>
               </div>
             </>
           ) : (
@@ -636,7 +952,8 @@ export function SubjectsPage({ user }: { user: User }) {
         onClose={() => setDeleting(null)}
         onConfirm={handleDelete}
         title="Delete subject?"
-        description="This will permanently remove this subject and its grade."
+        description="This will permanently remove this subject and its grade from Supabase."
+        loading={saving}
       />
     </div>
   );

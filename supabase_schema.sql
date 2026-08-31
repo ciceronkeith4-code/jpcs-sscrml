@@ -24,6 +24,9 @@ CREATE TABLE IF NOT EXISTS public.user_credentials (
 -- Ensure latest columns exist if table was already created
 ALTER TABLE public.user_credentials ADD COLUMN IF NOT EXISTS officer_position TEXT DEFAULT 'None';
 ALTER TABLE public.user_credentials ADD COLUMN IF NOT EXISTS profile_photo TEXT;
+ALTER TABLE public.user_credentials ADD COLUMN IF NOT EXISTS selected_semester_id TEXT;
+ALTER TABLE public.user_credentials ADD COLUMN IF NOT EXISTS selected_academic_year TEXT;
+ALTER TABLE public.user_credentials ADD COLUMN IF NOT EXISTS selected_semester TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_user_credentials_email ON public.user_credentials(email);
 CREATE INDEX IF NOT EXISTS idx_user_credentials_student_number ON public.user_credentials(student_number);
@@ -59,8 +62,15 @@ CREATE TABLE IF NOT EXISTS public.semesters (
     student_number TEXT NOT NULL,
     semester TEXT NOT NULL,          -- e.g. "First Semester", "Second Semester", "Summer"
     academic_year TEXT NOT NULL,     -- e.g. "2026–2027"
+    is_active BOOLEAN DEFAULT false,
+    course TEXT DEFAULT 'BSIT',
+    year_level TEXT DEFAULT '1',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+ALTER TABLE public.semesters ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT false;
+ALTER TABLE public.semesters ADD COLUMN IF NOT EXISTS course TEXT DEFAULT 'BSIT';
+ALTER TABLE public.semesters ADD COLUMN IF NOT EXISTS year_level TEXT DEFAULT '1';
 
 CREATE INDEX IF NOT EXISTS idx_semesters_student_number ON public.semesters(student_number);
 CREATE INDEX IF NOT EXISTS idx_semesters_user_id ON public.semesters(user_id);
@@ -77,15 +87,30 @@ CREATE TABLE IF NOT EXISTS public.subjects (
     grade NUMERIC(4, 2) DEFAULT 0.00 NOT NULL, -- e.g. 1.25, 1.50, 0.00 (Currently Taking)
     status TEXT DEFAULT 'Currently Taking' NOT NULL, -- 'Passed', 'Failed', 'Incomplete', 'Currently Taking'
     semester TEXT,
+    block TEXT,                      -- e.g. "A", "B", "AB"
     subject_block TEXT,              -- e.g. "BSIT-2A", "BSIT-4B"
     year_level TEXT,                 -- e.g. "1", "2", "3", "4"
     schedule_day TEXT,               -- e.g. "M-TH", "T-F", "WED"
+    schedule_days TEXT,
+    schedule_time TEXT,
     schedule_start TEXT,             -- e.g. "7:30 AM", "1:00 PM"
     schedule_end TEXT,               -- e.g. "9:00 AM", "2:30 PM"
     room TEXT,                       -- e.g. "CLAB 1", "Smart Class"
+    faculty TEXT,
+    mode TEXT,
+    lec_units NUMERIC(3, 1) DEFAULT 0,
+    lab_units NUMERIC(3, 1) DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+ALTER TABLE public.subjects ADD COLUMN IF NOT EXISTS block TEXT;
+ALTER TABLE public.subjects ADD COLUMN IF NOT EXISTS schedule_days TEXT;
+ALTER TABLE public.subjects ADD COLUMN IF NOT EXISTS schedule_time TEXT;
+ALTER TABLE public.subjects ADD COLUMN IF NOT EXISTS faculty TEXT;
+ALTER TABLE public.subjects ADD COLUMN IF NOT EXISTS mode TEXT;
+ALTER TABLE public.subjects ADD COLUMN IF NOT EXISTS lec_units NUMERIC(3, 1) DEFAULT 0;
+ALTER TABLE public.subjects ADD COLUMN IF NOT EXISTS lab_units NUMERIC(3, 1) DEFAULT 0;
 
 CREATE INDEX IF NOT EXISTS idx_subjects_student_number ON public.subjects(student_number);
 CREATE INDEX IF NOT EXISTS idx_subjects_semester_id ON public.subjects(semester_id);
