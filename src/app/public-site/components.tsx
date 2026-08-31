@@ -553,16 +553,16 @@ export function Footer() {
             <div className="site-footer__group">
               <h3>Contact</h3>
               <a href="mailto:jpcssscrmnl@gmail.com">jpcssscrmnl@gmail.com</a>
-              <span className="text-slate-300">JPCS SSCR Manila Chapter</span>
+              <span>JPCS SSCR Manila Chapter</span>
               <span>San Sebastian College Recoletos Manila</span>
             </div>
           </div>
 
           <div className="site-footer__bottom">
             <div className="site-footer__bottom-left">
-              <span>© {new Date().getFullYear()} JPCS SSCR Manila</span>
-              <span className="text-slate-500">·</span>
-              <span className="text-amber-400 font-medium">Designed and Developed by Former President Keith Ciceron</span>
+              <span>© {new Date().getFullYear()} JPCS SSCR Manila. All rights reserved.</span>
+              <span className="text-slate-600">·</span>
+              <span className="dev-credit text-slate-300">Designed and Developed by Former President Keith Ciceron</span>
             </div>
             <div className="site-footer__bottom-right">
               <button
