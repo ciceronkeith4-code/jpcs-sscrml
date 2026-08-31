@@ -861,9 +861,9 @@ a:hover .site-rolling > span:last-child, button:hover .site-rolling > span:last-
 .site-person button svg { width: 13px; }
 
 
-.site-footer { margin-top: 0; padding-block: clamp(2.4rem, 3.8vw, 3.4rem) 1.25rem; background: #1c1e22; color: #94a3b8; font-size: 0.8rem; }
+.site-footer { margin-top: 0; padding-block: clamp(2.4rem, 3.8vw, 3.4rem) 1.25rem; background: #1c2b3a; color: #ffffff; font-size: 0.8rem; border-top: 1px solid rgba(255, 255, 255, 0.08); }
 .site-footer .site-logo strong { color: #fff; font-size: 0.95rem; font-weight: 700; letter-spacing: -0.01em; }
-.site-footer .site-logo small { color: #94a3b8; font-size: 0.58rem; opacity: 0.85; }
+.site-footer .site-logo small { color: #94a3b8; font-size: 0.58rem; opacity: 0.9; }
 .site-footer__top { display: grid; grid-template-columns: 2.2fr 1fr 1fr 1.3fr; gap: clamp(1.8rem, 3.5vw, 3.8rem); padding-bottom: 2.25rem; }
 
 .site-home-features > .site-shell,
