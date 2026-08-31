@@ -900,9 +900,12 @@ a:hover .site-rolling > span:last-child, button:hover .site-rolling > span:last-
 .site-footer__group a:hover { color: #fff; }
 .site-footer__bottom { min-height: 64px; border-top: 1px solid rgba(255,255,255,.14); display: flex; align-items: center; justify-content: space-between; gap: 2rem; padding-top: 1.5rem; color: #9da8b3; font-size: .7rem; }
 .site-footer__bottom-left { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; text-align: left; }
-.site-footer__bottom-right { display: flex; align-items: center; gap: 1.25rem; margin-left: auto; }
-.site-footer__bottom button { width: 42px; height: 42px; margin-left: 0.5rem; display: grid; place-items: center; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); background: transparent; color: #fff; cursor: pointer; }
-.site-footer__bottom button svg { width: 17px; }
+.site-footer__bottom-right { display: flex; align-items: center; gap: 0.75rem; margin-left: auto; flex-wrap: wrap; }
+.site-footer__legal-btn { background: none; border: none; padding: 0; color: #9da8b3; font-size: 0.72rem; font-weight: 500; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; transition: color 0.2s ease, text-decoration-color 0.2s ease; }
+.site-footer__legal-btn:hover { color: #f2aa2a; text-decoration-color: #f2aa2a; }
+.site-footer__bottom button[aria-label="Back to top"] { width: 42px; height: 42px; margin-left: 0.5rem; display: grid; place-items: center; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); background: transparent; color: #fff; cursor: pointer; transition: background 0.2s, border-color 0.2s; }
+.site-footer__bottom button[aria-label="Back to top"]:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.4); }
+.site-footer__bottom button[aria-label="Back to top"] svg { width: 17px; }
 
 @media (max-width: 1180px) {
   .site-nav { gap: 1rem; }

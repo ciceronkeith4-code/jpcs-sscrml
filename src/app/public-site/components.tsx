@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { ArrowRight, Check, ChevronDown, ChevronUp, Code2, HeartHandshake, Menu, Network, Sparkles, Users, X } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, ChevronUp, Code2, HeartHandshake, Menu, Network, Scale, ShieldCheck, Sparkles, Users, X } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { footerGroups, navigation, type Feature } from "./data";
@@ -344,36 +344,306 @@ export function Header() {
   );
 }
 
-export function Footer() {
+export function LegalModal({
+  activeTab,
+  onClose,
+  onTabChange,
+}: {
+  activeTab: "privacy" | "terms";
+  onClose: () => void;
+  onTabChange: (tab: "privacy" | "terms") => void;
+}) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [onClose]);
+
   return (
-    <footer className="site-footer" id="contact">
-      <div className="site-shell">
-        <div className="site-footer__top">
-          <div className="site-footer__brand"><Logo /><p>A student-led technology community developing future computing professionals through learning, leadership, innovation, and service.</p></div>
-          {footerGroups.map((group) => <div className="site-footer__group" key={group.title}><h3>{group.title}</h3>{group.links.map((link) => <SiteLink to={link.to} key={link.label}>{link.label}</SiteLink>)}</div>)}
-          <div className="site-footer__group">
-            <h3>Contact</h3>
-            <a href="mailto:jpcssscrmnl@gmail.com">jpcssscrmnl@gmail.com</a>
-            <span className="text-slate-300">JPCS SSCR Manila Chapter</span>
-            <span>San Sebastian College Recoletos Manila</span>
-          </div>
-        </div>
-        <div className="site-footer__bottom">
-          <div className="site-footer__bottom-left">
-            <span>© {new Date().getFullYear()} JPCS SSCR Manila</span>
-            <span className="text-slate-500">·</span>
-            <span className="text-amber-400 font-medium">Designed and Developed by Former President Keith Ciceron</span>
-          </div>
-          <div className="site-footer__bottom-right">
-            <span>Privacy placeholder</span>
-            <span>Terms placeholder</span>
-            <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} aria-label="Back to top">
-              <ChevronUp />
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-8">
+        {/* Backdrop */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 bg-black/80 backdrop-blur-md"
+        />
+
+        {/* Modal Window */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 15 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="relative z-10 w-full max-w-3xl max-h-[85vh] flex flex-col rounded-2xl bg-[#1c1216] border border-white/15 shadow-2xl overflow-hidden text-slate-200"
+        >
+          {/* Header */}
+          <div className="px-6 py-4.5 border-b border-white/10 flex items-center justify-between bg-black/40">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                {activeTab === "privacy" ? <ShieldCheck className="size-5" /> : <Scale className="size-5" />}
+              </div>
+              <div>
+                <h2 className="text-base sm:text-lg font-extrabold text-white tracking-tight">
+                  {activeTab === "privacy" ? "Privacy Policy & Student Data Notice" : "Terms of Service & System Ownership"}
+                </h2>
+                <p className="text-xs text-slate-400 font-medium">
+                  JPCS · San Sebastian College - Recoletos Manila Chapter
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="size-8 sm:size-9 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer border border-white/10"
+              aria-label="Close legal modal"
+            >
+              <X className="size-4.5 sm:size-5" />
             </button>
           </div>
-        </div>
+
+          {/* Navigation Tabs */}
+          <div className="flex border-b border-white/10 bg-black/20 px-6 pt-2.5 gap-2">
+            <button
+              type="button"
+              onClick={() => onTabChange("privacy")}
+              className={`pb-3 px-4 text-xs font-extrabold uppercase tracking-wider transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
+                activeTab === "privacy"
+                  ? "border-amber-400 text-amber-400"
+                  : "border-transparent text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <ShieldCheck className="size-4" />
+              Privacy Policy
+            </button>
+            <button
+              type="button"
+              onClick={() => onTabChange("terms")}
+              className={`pb-3 px-4 text-xs font-extrabold uppercase tracking-wider transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
+                activeTab === "terms"
+                  ? "border-amber-400 text-amber-400"
+                  : "border-transparent text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Scale className="size-4" />
+              Terms & Ownership
+            </button>
+          </div>
+
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6 text-xs sm:text-sm text-slate-300 leading-relaxed scrollbar-thin scrollbar-thumb-white/15">
+            {activeTab === "privacy" ? (
+              <>
+                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-200 text-xs leading-normal">
+                  <strong className="text-amber-300 block mb-1 text-sm">Republic Act No. 10173 (Data Privacy Act of 2012) Compliance</strong>
+                  The Junior Philippine Computer Society (JPCS) – San Sebastian College-Recoletos Manila Chapter and the SSCR Manila IT Department are committed to upholding student confidentiality, transparency, and data integrity across all digital portal systems.
+                </div>
+
+                <div className="space-y-2.5">
+                  <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-amber-400"></span>
+                    1. Information We Collect
+                  </h3>
+                  <p className="text-slate-300">
+                    To deliver accurate curriculum roadmaps, academic simulations, and secure authentication, the system processes:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1.5 pl-2 text-slate-400">
+                    <li><strong className="text-slate-200">Student Identification:</strong> Full Name, Student Number, Official Email (<code className="text-amber-300 text-xs">@sscrmnl.edu.ph</code>), Degree Program (BSIT), and Academic Year Level.</li>
+                    <li><strong className="text-slate-200">Curriculum & Grade Data:</strong> Semester records, course blocks, credit units, room assignments, schedules, and numerical course grades for GPA and medal evaluations.</li>
+                    <li><strong className="text-slate-200">Account Credentials:</strong> Salted password hashes and session authentication tokens.</li>
+                    <li><strong className="text-slate-200">User Profile Media:</strong> Student-uploaded avatar pictures and official officer hierarchy directory assets.</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-2.5">
+                  <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-amber-400"></span>
+                    2. Purpose & Academic Scope of Data
+                  </h3>
+                  <p className="text-slate-300">
+                    Data gathered is utilized strictly for academic planning, grade simulation, general weighted average (GWA) calculation, honors and medal eligibility projection, curriculum prerequisite tracking, and department officer directory display.
+                  </p>
+                </div>
+
+                <div className="space-y-2.5">
+                  <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-amber-400"></span>
+                    3. Non-Disclosure & Security Safeguards
+                  </h3>
+                  <p className="text-slate-300">
+                    Student records are strictly protected. We <strong className="text-white font-semibold">never sell, rent, commercialize, or share</strong> student records with external advertisers or commercial third parties. All network communications are encrypted via TLS 1.3 / SSL, and database access is governed by automated Postgres Row-Level Security (RLS) policies.
+                  </p>
+                </div>
+
+                <div className="space-y-2.5">
+                  <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-amber-400"></span>
+                    4. Student Rights & Inquiries
+                  </h3>
+                  <p className="text-slate-300">
+                    Under the Data Privacy Act of 2012, students have the right to request access to their stored data, rectify erroneous entries, or update their profile records. For data privacy inquiries or assistance, email us at <a href="mailto:jpcssscrmnl@gmail.com" className="text-amber-400 underline hover:text-amber-300 font-semibold">jpcssscrmnl@gmail.com</a>.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-4 rounded-xl bg-sky-500/10 border border-sky-500/25 text-sky-200 text-xs leading-normal">
+                  <strong className="text-sky-300 block mb-1 text-sm">Official Platform Terms of Service & Intellectual Property</strong>
+                  This digital system and academic portal represents the official student technology infrastructure of the Junior Philippine Computer Society (JPCS) – SSCR Manila Chapter.
+                </div>
+
+                <div className="space-y-2.5">
+                  <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-amber-400"></span>
+                    1. System Creation, Design & Intellectual Property Ownership
+                  </h3>
+                  <div className="p-3.5 rounded-lg bg-white/5 border border-white/10 space-y-1">
+                    <p className="text-white font-bold text-xs sm:text-sm">
+                      Conceived, Designed, and Developed by:
+                    </p>
+                    <p className="text-amber-400 font-extrabold text-sm sm:text-base">
+                      Keith Czimonne Anderson Ciceron
+                    </p>
+                    <p className="text-slate-400 text-xs">
+                      Former President & Lead Developer · JPCS San Sebastian College - Recoletos Manila Chapter
+                    </p>
+                  </div>
+                  <p className="text-slate-300">
+                    The source code, database architecture, design systems, algorithms, curriculum engines, and user interfaces are the proprietary intellectual property and operational system of the <strong className="text-white">Junior Philippine Computer Society (JPCS) - San Sebastian College - Recoletos Manila Chapter</strong> in collaboration with the <strong className="text-white">SSCR Manila IT Department</strong>.
+                  </p>
+                </div>
+
+                <div className="space-y-2.5">
+                  <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-amber-400"></span>
+                    2. Institutional Trademarks & Affiliation
+                  </h3>
+                  <p className="text-slate-300">
+                    All institutional seals, logos, academic degree curriculums, and departmental insignias of <strong className="text-white">San Sebastian College - Recoletos Manila</strong> remain the exclusive property of the institution, utilized here under recognized collegiate organization administration.
+                  </p>
+                </div>
+
+                <div className="space-y-2.5">
+                  <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-amber-400"></span>
+                    3. Permitted Use & Code of Conduct
+                  </h3>
+                  <p className="text-slate-300">
+                    Access to this platform is authorized for enrolled students, faculty members, and student leaders for educational planning, academic scheduling, organization participation, and departmental announcements. Users shall not attempt unauthorized scraping, penetration testing, database tampering, credential harvesting, or reverse engineering.
+                  </p>
+                </div>
+
+                <div className="space-y-2.5">
+                  <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-amber-400"></span>
+                    4. Academic Advisory Disclaimer
+                  </h3>
+                  <p className="text-slate-400">
+                    Grade simulations, prerequisite assessments, and honors projections in this portal represent planning tools aligned with the July 18 / Aug 23 departmental curriculum standards. Official transcripts, certifications, and permanent scholastic evaluations remain under the sole jurisdiction of the <strong className="text-slate-200">SSCR Manila Office of the Registrar</strong>.
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Footer Bar */}
+          <div className="px-6 py-3.5 border-t border-white/10 bg-black/50 flex items-center justify-between text-xs text-slate-400">
+            <span>Official Policy · San Sebastian College - Recoletos Manila</span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold transition-colors cursor-pointer text-xs"
+            >
+              Close
+            </button>
+          </div>
+        </motion.div>
       </div>
-    </footer>
+    </AnimatePresence>
+  );
+}
+
+export function Footer() {
+  const [legalModalTab, setLegalModalTab] = useState<"privacy" | "terms" | null>(null);
+
+  return (
+    <>
+      <footer className="site-footer" id="contact">
+        <div className="site-shell">
+          <div className="site-footer__top">
+            <div className="site-footer__brand">
+              <Logo />
+              <p>A student-led technology community developing future computing professionals through learning, leadership, innovation, and service.</p>
+            </div>
+            {footerGroups.map((group) => (
+              <div className="site-footer__group" key={group.title}>
+                <h3>{group.title}</h3>
+                {group.links.map((link) => (
+                  <SiteLink to={link.to} key={link.label}>
+                    {link.label}
+                  </SiteLink>
+                ))}
+              </div>
+            ))}
+            <div className="site-footer__group">
+              <h3>Contact</h3>
+              <a href="mailto:jpcssscrmnl@gmail.com">jpcssscrmnl@gmail.com</a>
+              <span className="text-slate-300">JPCS SSCR Manila Chapter</span>
+              <span>San Sebastian College Recoletos Manila</span>
+            </div>
+          </div>
+
+          <div className="site-footer__bottom">
+            <div className="site-footer__bottom-left">
+              <span>© {new Date().getFullYear()} JPCS SSCR Manila</span>
+              <span className="text-slate-500">·</span>
+              <span className="text-amber-400 font-medium">Designed and Developed by Former President Keith Ciceron</span>
+            </div>
+            <div className="site-footer__bottom-right">
+              <button
+                type="button"
+                onClick={() => setLegalModalTab("privacy")}
+                className="site-footer__legal-btn"
+              >
+                Privacy Policy
+              </button>
+              <span className="text-slate-600">·</span>
+              <button
+                type="button"
+                onClick={() => setLegalModalTab("terms")}
+                className="site-footer__legal-btn"
+              >
+                Terms of Service
+              </button>
+              <button
+                type="button"
+                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                aria-label="Back to top"
+              >
+                <ChevronUp />
+              </button>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      {legalModalTab && (
+        <LegalModal
+          activeTab={legalModalTab}
+          onClose={() => setLegalModalTab(null)}
+          onTabChange={(tab) => setLegalModalTab(tab)}
+        />
+      )}
+    </>
   );
 }
 
