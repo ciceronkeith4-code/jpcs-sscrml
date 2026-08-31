@@ -610,18 +610,18 @@ export function SubjectsPage({ user }: { user: User }) {
           <Card>
             {subjects.length ? (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm border-collapse min-w-[960px]">
                   <thead>
                     <tr className="border-b border-border bg-muted/30">
-                      <th className="text-left text-xs font-medium text-muted-foreground px-5 py-3">Block</th>
-                      <th className="text-left text-xs font-medium text-muted-foreground px-5 py-3">Code</th>
-                      <th className="text-left text-xs font-medium text-muted-foreground px-5 py-3">Subject Name</th>
-                      <th className="text-center text-xs font-medium text-muted-foreground px-5 py-3">Units</th>
-                      <th className="text-left text-xs font-medium text-muted-foreground px-5 py-3">Days</th>
-                      <th className="text-left text-xs font-medium text-muted-foreground px-5 py-3">Time</th>
-                      <th className="text-left text-xs font-medium text-muted-foreground px-5 py-3">Room</th>
-                      <th className="text-center text-xs font-medium text-muted-foreground px-5 py-3">Final Grade</th>
-                      <th className="text-right text-xs font-medium text-muted-foreground px-5 py-3">Actions</th>
+                      <th className="text-center text-xs font-medium text-muted-foreground px-3.5 py-3 w-[75px] min-w-[75px] whitespace-nowrap">Block</th>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-3.5 py-3 w-[130px] min-w-[130px] whitespace-nowrap">Code</th>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3 min-w-[220px]">Subject Name</th>
+                      <th className="text-center text-xs font-medium text-muted-foreground px-2 py-3 w-[55px] min-w-[55px] whitespace-nowrap">Units</th>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-3.5 py-3 w-[100px] min-w-[100px] whitespace-nowrap">Days</th>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-3.5 py-3 w-[125px] min-w-[125px] whitespace-nowrap">Time</th>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-3.5 py-3 w-[90px] min-w-[90px] whitespace-nowrap">Room</th>
+                      <th className="text-center text-xs font-medium text-muted-foreground px-3.5 py-3 w-[95px] min-w-[95px] whitespace-nowrap">Final Grade</th>
+                      <th className="text-right text-xs font-medium text-muted-foreground px-3.5 py-3 w-[90px] min-w-[90px] whitespace-nowrap">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -631,7 +631,7 @@ export function SubjectsPage({ user }: { user: User }) {
                       const isAB = block === "AB";
                       return (
                         <tr key={sub.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors font-medium">
-                          <td className="px-5 py-3.5 whitespace-nowrap">
+                          <td className="px-3.5 py-3.5 text-center whitespace-nowrap">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${
                               isB ? "bg-purple-100 text-purple-900 border-purple-300" :
                               isAB ? "bg-amber-100 text-amber-950 border-amber-300" :
@@ -640,17 +640,17 @@ export function SubjectsPage({ user }: { user: User }) {
                               BLK {block}
                             </span>
                           </td>
-                          <td className="px-5 py-3.5 font-mono text-xs font-bold">
-                            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-900 border border-slate-200">
+                          <td className="px-3.5 py-3.5 whitespace-nowrap">
+                            <span className="inline-flex items-center justify-center px-2.5 py-1 rounded bg-slate-100 text-slate-900 border border-slate-200 font-mono text-xs font-bold whitespace-nowrap shrink-0 w-fit">
                               {sub.subject_code}
                             </span>
                           </td>
-                          <td className="px-5 py-3.5 text-foreground font-bold">{sub.subject_name}</td>
-                          <td className="px-5 py-3.5 text-center text-muted-foreground font-bold">{sub.units}</td>
-                          <td className="px-5 py-3.5 text-muted-foreground whitespace-nowrap">{sub.schedule_days || sub.schedule_day || "—"}</td>
-                          <td className="px-5 py-3.5 text-muted-foreground whitespace-nowrap">{sub.schedule_time || (sub.schedule_start && sub.schedule_end ? `${sub.schedule_start} - ${sub.schedule_end}` : "—")}</td>
-                          <td className="px-5 py-3.5 text-muted-foreground whitespace-nowrap">{sub.room || "—"}</td>
-                          <td className="px-5 py-3.5 text-center">
+                          <td className="px-4 py-3.5 text-foreground font-bold leading-snug break-words">{sub.subject_name}</td>
+                          <td className="px-2 py-3.5 text-center text-muted-foreground font-bold">{sub.units}</td>
+                          <td className="px-3.5 py-3.5 text-muted-foreground whitespace-nowrap">{sub.schedule_days || sub.schedule_day || "—"}</td>
+                          <td className="px-3.5 py-3.5 text-muted-foreground whitespace-nowrap">{sub.schedule_time || (sub.schedule_start && sub.schedule_end ? `${sub.schedule_start} - ${sub.schedule_end}` : "—")}</td>
+                          <td className="px-3.5 py-3.5 text-muted-foreground whitespace-nowrap">{sub.room || "—"}</td>
+                          <td className="px-3.5 py-3.5 text-center whitespace-nowrap">
                             {sub.status === "Currently Taking" ? (
                               <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
                                 Taking
@@ -669,7 +669,7 @@ export function SubjectsPage({ user }: { user: User }) {
                               }`}>{sub.grade}</span>
                             )}
                           </td>
-                          <td className="px-5 py-3.5 text-right">
+                          <td className="px-3.5 py-3.5 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1">
                               <button onClick={() => openEdit(sub.id)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer" title="Edit Subject">
                                 <svg className="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>

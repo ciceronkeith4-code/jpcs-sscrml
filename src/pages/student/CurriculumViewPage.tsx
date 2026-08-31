@@ -248,7 +248,7 @@ export function CurriculumViewPage({ user }: { user?: User }) {
         </div>
       </div>
 
-      {/* ── Curriculum Schedule Table (Desktop & Laptop) ───────────── */}
+      {/* ── Curriculum Schedule Table (Desktop, Laptop & Scrollable Container) ───────────── */}
       <Card className="overflow-hidden border border-slate-200 rounded-2xl shadow-xs">
         {loading ? (
           <div className="p-12 text-center text-slate-400 text-xs font-medium">
@@ -257,22 +257,22 @@ export function CurriculumViewPage({ user }: { user?: User }) {
           </div>
         ) : filteredItems.length > 0 ? (
           <>
-            {/* Desktop Academic Table */}
+            {/* Desktop & Laptop Academic Table */}
             <div className="hidden lg:block overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+              <table className="w-full text-left text-xs border-collapse min-w-[1020px]">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
-                    <th className="py-3.5 px-4">Block</th>
-                    <th className="py-3.5 px-4">Code</th>
-                    <th className="py-3.5 px-4">Subject Description</th>
-                    <th className="py-3.5 px-3 text-center">Lec</th>
-                    <th className="py-3.5 px-3 text-center">Lab</th>
-                    <th className="py-3.5 px-3 text-center">Total</th>
-                    <th className="py-3.5 px-4">Schedule / Days</th>
-                    <th className="py-3.5 px-4">Time</th>
-                    <th className="py-3.5 px-4">Room</th>
-                    <th className="py-3.5 px-4">Faculty</th>
-                    <th className="py-3.5 px-4 text-center">Mode</th>
+                    <th className="py-3.5 px-3.5 w-[75px] min-w-[75px] text-center whitespace-nowrap">Block</th>
+                    <th className="py-3.5 px-3.5 w-[130px] min-w-[130px] whitespace-nowrap">Code</th>
+                    <th className="py-3.5 px-4 min-w-[220px]">Subject Description</th>
+                    <th className="py-3.5 px-2 text-center w-[50px] min-w-[50px]">Lec</th>
+                    <th className="py-3.5 px-2 text-center w-[50px] min-w-[50px]">Lab</th>
+                    <th className="py-3.5 px-2 text-center w-[55px] min-w-[55px]">Total</th>
+                    <th className="py-3.5 px-3.5 w-[110px] min-w-[110px] whitespace-nowrap">Schedule / Days</th>
+                    <th className="py-3.5 px-3.5 w-[130px] min-w-[130px] whitespace-nowrap">Time</th>
+                    <th className="py-3.5 px-3.5 w-[90px] min-w-[90px] whitespace-nowrap">Room</th>
+                    <th className="py-3.5 px-4 min-w-[140px]">Faculty</th>
+                    <th className="py-3.5 px-3.5 text-center w-[135px] min-w-[135px] whitespace-nowrap">Mode</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -280,36 +280,36 @@ export function CurriculumViewPage({ user }: { user?: User }) {
                     const theme = getSubjectBadgeTheme(item.subject_code);
                     return (
                       <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3.5 px-4 whitespace-nowrap">{getBlockBadge(item.block)}</td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className={`inline-block px-2 py-1 rounded-md text-xs font-mono font-black border ${theme}`}>
+                        <td className="py-3.5 px-3.5 text-center whitespace-nowrap">{getBlockBadge(item.block)}</td>
+                        <td className="py-3.5 px-3.5 whitespace-nowrap">
+                          <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-md text-xs font-mono font-black border whitespace-nowrap shrink-0 w-fit ${theme}`}>
                             {item.subject_code}
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 font-extrabold text-slate-900">
+                        <td className="py-3.5 px-4 font-extrabold text-slate-900 leading-snug break-words">
                           {item.subject_description}
                         </td>
-                        <td className="py-3.5 px-3 text-center font-semibold text-slate-600">{item.lec_units}</td>
-                        <td className="py-3.5 px-3 text-center font-semibold text-slate-600">{item.lab_units}</td>
-                        <td className="py-3.5 px-3 text-center font-black text-[#800000]">{item.total_units}</td>
-                        <td className="py-3.5 px-4 font-mono font-bold text-slate-700 whitespace-nowrap">{item.days}</td>
-                        <td className="py-3.5 px-4 font-mono text-slate-600 whitespace-nowrap">{item.time}</td>
-                        <td className="py-3.5 px-4 font-bold text-slate-700 whitespace-nowrap">{item.room}</td>
-                        <td className="py-3.5 px-4 text-slate-800 font-semibold">{item.faculty || "—"}</td>
-                        <td className="py-3.5 px-4 text-center whitespace-nowrap">{getModeBadge(item.mode)}</td>
+                        <td className="py-3.5 px-2 text-center font-semibold text-slate-600">{item.lec_units}</td>
+                        <td className="py-3.5 px-2 text-center font-semibold text-slate-600">{item.lab_units}</td>
+                        <td className="py-3.5 px-2 text-center font-black text-[#800000]">{item.total_units}</td>
+                        <td className="py-3.5 px-3.5 font-mono font-bold text-slate-700 whitespace-nowrap">{item.days}</td>
+                        <td className="py-3.5 px-3.5 font-mono text-slate-600 whitespace-nowrap">{item.time}</td>
+                        <td className="py-3.5 px-3.5 font-bold text-slate-700 whitespace-nowrap">{item.room}</td>
+                        <td className="py-3.5 px-4 text-slate-800 font-semibold leading-snug">{item.faculty || "—"}</td>
+                        <td className="py-3.5 px-3.5 text-center whitespace-nowrap">{getModeBadge(item.mode)}</td>
                       </tr>
                     );
                   })}
                 </tbody>
                 <tfoot>
                   <tr className="bg-slate-50 border-t-2 border-slate-200 text-xs font-black text-slate-900">
-                    <td colSpan={3} className="py-3 px-4 text-right uppercase tracking-wider text-slate-500">
+                    <td colSpan={3} className="py-3.5 px-4 text-right uppercase tracking-wider text-slate-500 whitespace-nowrap">
                       Total for {selectedYear}:
                     </td>
-                    <td className="py-3 px-3 text-center font-bold text-slate-700">{filteredTotals.totalLecUnits}</td>
-                    <td className="py-3 px-3 text-center font-bold text-slate-700">{filteredTotals.totalLabUnits}</td>
-                    <td className="py-3 px-3 text-center font-black text-[#800000] text-sm">{filteredTotals.totalUnits} Units</td>
-                    <td colSpan={5} className="py-3 px-4 text-slate-400 text-right text-[11px] font-normal">
+                    <td className="py-3.5 px-2 text-center font-bold text-slate-700">{filteredTotals.totalLecUnits}</td>
+                    <td className="py-3.5 px-2 text-center font-bold text-slate-700">{filteredTotals.totalLabUnits}</td>
+                    <td className="py-3.5 px-2 text-center font-black text-[#800000] text-sm whitespace-nowrap">{filteredTotals.totalUnits} Units</td>
+                    <td colSpan={5} className="py-3.5 px-4 text-slate-500 text-right text-[11px] font-normal whitespace-nowrap">
                       {filteredTotals.totalSubjects} subjects displayed
                     </td>
                   </tr>
@@ -324,16 +324,16 @@ export function CurriculumViewPage({ user }: { user?: User }) {
                 return (
                   <div key={item.id} className="p-4 space-y-3">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="space-y-1">
+                      <div className="space-y-1 min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           {getBlockBadge(item.block)}
-                          <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-mono font-black border ${theme}`}>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-mono font-black border whitespace-nowrap shrink-0 ${theme}`}>
                             {item.subject_code}
                           </span>
                         </div>
-                        <h4 className="font-extrabold text-slate-900 text-sm leading-tight mt-1">{item.subject_description}</h4>
+                        <h4 className="font-extrabold text-slate-900 text-sm leading-tight mt-1 break-words">{item.subject_description}</h4>
                       </div>
-                      <span className="text-xs font-black text-[#800000] bg-[#800000]/10 px-2 py-1 rounded-lg shrink-0">
+                      <span className="text-xs font-black text-[#800000] bg-[#800000]/10 px-2.5 py-1 rounded-lg shrink-0 whitespace-nowrap">
                         {item.total_units} Units
                       </span>
                     </div>
@@ -341,11 +341,11 @@ export function CurriculumViewPage({ user }: { user?: User }) {
                     <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-xl border border-slate-100">
                       <div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase">Days / Schedule</span>
-                        <p className="font-mono font-bold text-slate-800">{item.days} · {item.time}</p>
+                        <p className="font-mono font-bold text-slate-800 whitespace-nowrap">{item.days} · {item.time}</p>
                       </div>
                       <div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase">Room</span>
-                        <p className="font-bold text-slate-800">{item.room}</p>
+                        <p className="font-bold text-slate-800 whitespace-nowrap">{item.room}</p>
                       </div>
                       <div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase">Faculty</span>
@@ -353,7 +353,7 @@ export function CurriculumViewPage({ user }: { user?: User }) {
                       </div>
                       <div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase">Delivery Mode</span>
-                        <div className="mt-0.5">{getModeBadge(item.mode)}</div>
+                        <div className="mt-0.5 whitespace-nowrap">{getModeBadge(item.mode)}</div>
                       </div>
                     </div>
                   </div>

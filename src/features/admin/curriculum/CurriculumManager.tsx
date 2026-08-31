@@ -302,21 +302,21 @@ export function CurriculumManager() {
           <div className="p-8 text-center text-xs text-slate-400">Loading curriculum data from Supabase...</div>
         ) : filtered.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+            <table className="w-full text-left text-xs border-collapse min-w-[1020px]">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-500 uppercase font-bold text-[10px] tracking-wider bg-slate-50/60">
-                  <th className="py-3 px-3">Year</th>
-                  <th className="py-3 px-3">Block</th>
-                  <th className="py-3 px-3">Code</th>
-                  <th className="py-3 px-3">Subject Description</th>
-                  <th className="py-3 px-2 text-center">Lec</th>
-                  <th className="py-3 px-2 text-center">Lab</th>
-                  <th className="py-3 px-2 text-center">Units</th>
-                  <th className="py-3 px-3">Schedule</th>
-                  <th className="py-3 px-3">Room</th>
-                  <th className="py-3 px-3">Faculty</th>
-                  <th className="py-3 px-3">Mode</th>
-                  <th className="py-3 px-3 text-right">Actions</th>
+                  <th className="py-3 px-3 w-[70px] min-w-[70px] whitespace-nowrap">Year</th>
+                  <th className="py-3 px-3 w-[70px] min-w-[70px] text-center whitespace-nowrap">Block</th>
+                  <th className="py-3 px-3.5 w-[130px] min-w-[130px] whitespace-nowrap">Code</th>
+                  <th className="py-3 px-4 min-w-[220px]">Subject Description</th>
+                  <th className="py-3 px-2 text-center w-[50px] min-w-[50px]">Lec</th>
+                  <th className="py-3 px-2 text-center w-[50px] min-w-[50px]">Lab</th>
+                  <th className="py-3 px-2 text-center w-[55px] min-w-[55px]">Units</th>
+                  <th className="py-3 px-3 w-[125px] min-w-[125px] whitespace-nowrap">Schedule</th>
+                  <th className="py-3 px-3 w-[90px] min-w-[90px] whitespace-nowrap">Room</th>
+                  <th className="py-3 px-3.5 min-w-[130px]">Faculty</th>
+                  <th className="py-3 px-3 text-center w-[120px] min-w-[120px] whitespace-nowrap">Mode</th>
+                  <th className="py-3 px-3 text-right w-[110px] min-w-[110px] whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -325,20 +325,20 @@ export function CurriculumManager() {
                   return (
                     <tr key={item.id} className="hover:bg-slate-50/80 transition-colors font-medium">
                       <td className="py-3 px-3 whitespace-nowrap font-bold text-slate-600">{item.year_level}</td>
-                      <td className="py-3 px-3 whitespace-nowrap">{getBlockBadge(item.block)}</td>
-                      <td className="py-3 px-3 whitespace-nowrap font-bold">
-                        <span className={`inline-block px-2 py-0.5 rounded-md border text-xs font-mono font-black ${theme}`}>
+                      <td className="py-3 px-3 text-center whitespace-nowrap">{getBlockBadge(item.block)}</td>
+                      <td className="py-3 px-3.5 whitespace-nowrap">
+                        <span className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-md border text-xs font-mono font-black whitespace-nowrap shrink-0 w-fit ${theme}`}>
                           {item.subject_code}
                         </span>
                       </td>
-                      <td className="py-3 px-3 font-bold text-slate-900 max-w-xs">{item.subject_description}</td>
-                      <td className="py-3 px-2 text-center text-slate-600">{item.lec_units}</td>
-                      <td className="py-3 px-2 text-center text-slate-600">{item.lab_units}</td>
+                      <td className="py-3 px-4 font-bold text-slate-900 leading-snug break-words">{item.subject_description}</td>
+                      <td className="py-3 px-2 text-center font-semibold text-slate-600">{item.lec_units}</td>
+                      <td className="py-3 px-2 text-center font-semibold text-slate-600">{item.lab_units}</td>
                       <td className="py-3 px-2 text-center font-black text-[#800000]">{item.total_units}</td>
                       <td className="py-3 px-3 whitespace-nowrap font-mono text-[11px] text-slate-600">{item.days} · {item.time}</td>
                       <td className="py-3 px-3 whitespace-nowrap font-bold text-slate-700">{item.room}</td>
-                      <td className="py-3 px-3 text-slate-800">{item.faculty || "—"}</td>
-                      <td className="py-3 px-3 whitespace-nowrap text-slate-600 font-bold">{item.mode}</td>
+                      <td className="py-3 px-3.5 text-slate-800 leading-snug">{item.faculty || "—"}</td>
+                      <td className="py-3 px-3 text-center whitespace-nowrap text-slate-600 font-bold">{item.mode}</td>
                       <td className="py-3 px-3 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           <Button variant="ghost" size="xs" onClick={() => openEditModal(item)} className="text-blue-600 hover:bg-blue-50 font-bold">
