@@ -531,22 +531,31 @@ export function SubjectsPage({ user }: { user: User }) {
         title="Subjects"
         subtitle="Record and manage your subjects, schedules, and final grades."
         action={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCurriculumModalOpen(true)}
-              className="border-primary/40 text-primary hover:bg-primary/5 font-bold"
+              className="text-slate-700 hover:text-slate-900 border-slate-200 hover:border-slate-300 font-medium"
             >
-              <svg className="size-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="size-3.5 mr-1.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
               Change Semester / Curriculum
             </Button>
             {selectedSemId && (
               <>
-                <Button variant="outline" size="sm" onClick={() => setModal("import")}>Import from Curriculum</Button>
-                <Button size="sm" onClick={openAdd}>Add Subject</Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setModal("import")}
+                  className="text-slate-700 hover:text-slate-900 border-slate-200 hover:border-slate-300 font-medium"
+                >
+                  Import from Curriculum
+                </Button>
+                <Button size="sm" onClick={openAdd} className="font-semibold">
+                  Add Subject
+                </Button>
               </>
             )}
           </div>
@@ -559,25 +568,14 @@ export function SubjectsPage({ user }: { user: User }) {
         </Alert>
       )}
 
-      {/* Semester selector & Change Curriculum Bar */}
-      <div className="mb-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-        <div className="flex-1">
-          <Select
-            value={selectedSemId}
-            onChange={(e) => void handleSemChange(e.target.value)}
-            options={semOptions}
-          />
-        </div>
-        <Button
-          variant="outline"
-          onClick={() => setCurriculumModalOpen(true)}
-          className="shrink-0 text-xs font-semibold"
-        >
-          <svg className="size-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-          </svg>
-          Change Curriculum
-        </Button>
+      {/* Semester Selector (Clean, prominent, no redundant button) */}
+      <div className="mb-6">
+        <Select
+          value={selectedSemId}
+          onChange={(e) => void handleSemChange(e.target.value)}
+          options={semOptions}
+          className="w-full font-medium"
+        />
       </div>
 
       {!selectedSemId ? (
@@ -673,10 +671,10 @@ export function SubjectsPage({ user }: { user: User }) {
                           </td>
                           <td className="px-5 py-3.5 text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <button onClick={() => openEdit(sub.id)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer">
+                              <button onClick={() => openEdit(sub.id)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer" title="Edit Subject">
                                 <svg className="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                               </button>
-                              <button onClick={() => setDeleting(sub.id)} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer">
+                              <button onClick={() => setDeleting(sub.id)} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer" title="Delete Subject">
                                 <svg className="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                               </button>
                             </div>
@@ -690,9 +688,9 @@ export function SubjectsPage({ user }: { user: User }) {
             ) : (
               <EmptyState
                 title="No subjects yet in this semester"
-                description="Add subjects manually, import from official curriculum, or use Change Curriculum."
+                description="Add subjects manually or import from the official curriculum."
                 action={
-                  <div className="flex gap-2">
+                  <div className="flex gap-2.5">
                     <Button size="sm" variant="outline" onClick={() => setModal("import")}>Import Curriculum</Button>
                     <Button size="sm" onClick={openAdd}>Add Subject</Button>
                   </div>
@@ -703,15 +701,15 @@ export function SubjectsPage({ user }: { user: User }) {
         </>
       )}
 
-      {/* ── [ Change Curriculum / Semester ] Modal ──────────────────── */}
+      {/* ── [ Change Semester / Curriculum ] Modal ──────────────────── */}
       <Modal
         open={curriculumModalOpen}
         onClose={() => !saving && setCurriculumModalOpen(false)}
         title="Change Semester / Curriculum"
         size="md"
       >
-        <div className="p-6 flex flex-col gap-4">
-          <p className="text-xs text-muted-foreground">
+        <div className="flex flex-col gap-4.5">
+          <p className="text-xs text-slate-500 leading-relaxed">
             Select your academic term and official curriculum cohort. Your selection will be permanently saved to Supabase.
           </p>
 
@@ -745,24 +743,37 @@ export function SubjectsPage({ user }: { user: User }) {
             />
           </div>
 
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex items-center justify-between">
-            <div>
+          {/* Auto-Populate Preference Box */}
+          <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 flex items-center justify-between gap-4">
+            <div className="min-w-0 flex-1">
               <span className="text-xs font-bold text-slate-800 block">Auto-Populate Subjects</span>
-              <span className="text-[11px] text-slate-500 block">Copy official BSIT curriculum subjects into your semester load</span>
+              <span className="text-[11px] text-slate-500 block mt-0.5 leading-normal">
+                Copy official BSIT curriculum subjects into your semester load
+              </span>
             </div>
             <input
               type="checkbox"
+              id="auto-import-subjects"
               checked={currForm.auto_import}
               onChange={(e) => setCurrForm((f) => ({ ...f, auto_import: e.target.checked }))}
-              className="size-4 text-[#800000] rounded focus:ring-[#800000] cursor-pointer"
+              className="size-4 text-[#800000] accent-[#800000] rounded focus:ring-[#800000] cursor-pointer shrink-0"
             />
           </div>
 
           <div className="flex gap-3 pt-2">
-            <Button variant="outline" className="flex-1" onClick={() => setCurriculumModalOpen(false)} disabled={saving}>
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setCurriculumModalOpen(false)}
+              disabled={saving}
+            >
               Cancel
             </Button>
-            <Button className="flex-1" onClick={handleApplyCurriculumChange} loading={saving}>
+            <Button
+              className="flex-1"
+              onClick={handleApplyCurriculumChange}
+              loading={saving}
+            >
               Save & Apply Curriculum
             </Button>
           </div>
