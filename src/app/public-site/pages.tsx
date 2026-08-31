@@ -197,7 +197,7 @@ export const bsitProgram = new Degree({
       code: `import { JPCSNational, SSCRManila } from "@jpcs/federation";
 
 export const studentCommunity = new SSCRManila.Hub({
-  members: "400+ Active BSIT Students",
+  members: "Active BSIT Students",
   partners: ["National JPCS", "Tech Startup Ecosystem", "Alumni Guild"],
   gatherings: "Weekly Code Circles, Sprints & Mentorship"
 });`,
