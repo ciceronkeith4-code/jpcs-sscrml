@@ -169,7 +169,7 @@ export function ImageOcrImportModal({
         onClose();
         resetState();
       }}
-      title="📷 AI Grade Sheet Image Reader & Auto-Importer"
+      title="AI Grade Sheet Image Reader & Auto-Importer"
       size="lg"
     >
       <div className="p-6">
@@ -177,8 +177,10 @@ export function ImageOcrImportModal({
           Upload any student portal grade screenshot. The system will automatically read every subject code, name, grades, and instructor using OCR.
         </p>
         {/* Tips for best results */}
-        <div className="mb-4 p-3 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-800 flex gap-2 items-start">
-          <span className="text-base shrink-0">💡</span>
+        <div className="mb-4 p-3 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-800 flex gap-2.5 items-start">
+          <svg className="size-4 text-blue-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
           <span><strong>Tips for best accuracy:</strong> Use a <strong>full-screen, high-resolution</strong> screenshot. Avoid cropping, blurry, or low-contrast images. The grade table must be fully visible.</span>
         </div>
 
@@ -378,8 +380,10 @@ export function ImageOcrImportModal({
             {/* Error banner when scan finds nothing */}
             {!loading && scanError && scannedSubjects.length === 0 && (
               <div className="mt-4 p-4 rounded-xl bg-red-50 border border-red-200 text-xs text-red-800">
-                <div className="flex items-start gap-2 mb-2">
-                  <span className="text-base shrink-0">⚠️</span>
+                <div className="flex items-start gap-2.5 mb-2">
+                  <svg className="size-4 text-red-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
                   <div>
                     <p className="font-bold mb-1">No subjects detected</p>
                     <p>{scanError}</p>

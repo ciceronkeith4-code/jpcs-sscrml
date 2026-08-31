@@ -75,18 +75,18 @@ export function AdminDashboardPage() {
         <StatCard label="Total Subjects" value={totalSubs} />
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <div style={{ backgroundColor: "#fef3c7", borderColor: "#f59e0b", borderWidth: "1px", borderStyle: "solid", color: "#78350f" }} className="rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold">🥇 {goldCount}</p>
-          <p className="text-xs font-semibold mt-0.5">Gold Medalists</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className="bg-amber-50/80 border border-amber-200 text-amber-950 rounded-2xl p-4 text-center">
+          <p className="text-2xl font-black">{goldCount}</p>
+          <p className="text-xs font-bold text-amber-900 mt-0.5">Gold Medalists</p>
         </div>
-        <div style={{ backgroundColor: "#f1f5f9", borderColor: "#cbd5e1", borderWidth: "1px", borderStyle: "solid", color: "#334155" }} className="rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold">🥈 {silverCount}</p>
-          <p className="text-xs font-semibold mt-0.5">Silver Medalists</p>
+        <div className="bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl p-4 text-center">
+          <p className="text-2xl font-black">{silverCount}</p>
+          <p className="text-xs font-bold text-slate-700 mt-0.5">Silver Medalists</p>
         </div>
-        <div style={{ backgroundColor: "#ffedd5", borderColor: "#f97316", borderWidth: "1px", borderStyle: "solid", color: "#7c2d12" }} className="rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold">🥉 {bronzeCount}</p>
-          <p className="text-xs font-semibold mt-0.5">Bronze Medalists</p>
+        <div className="bg-orange-50/80 border border-orange-200 text-orange-950 rounded-2xl p-4 text-center">
+          <p className="text-2xl font-black">{bronzeCount}</p>
+          <p className="text-xs font-bold text-orange-900 mt-0.5">Bronze Medalists</p>
         </div>
       </div>
 

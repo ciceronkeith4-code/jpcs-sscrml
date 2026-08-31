@@ -265,11 +265,11 @@ export function AppLayout({ user, onLogout, isAdmin }: AppLayoutProps) {
       {/* ── Desktop Left Sidebar (Fixed to Viewport) ─────────────── */}
       <aside
         className={cn(
-          "hidden lg:flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 bg-white border-r border-slate-200 transition-all duration-300 ease-in-out",
-          collapsed ? "w-20" : "w-64"
+          "hidden lg:flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 bg-white border-r border-slate-200 overflow-x-hidden overflow-y-auto select-none transition-all duration-300 ease-in-out shrink-0",
+          collapsed ? "w-20 min-w-[5rem] max-w-[5rem]" : "w-64 min-w-[16rem] max-w-[16rem]"
         )}
       >
-        <div className="flex flex-col min-h-0 flex-1">
+        <div className="flex flex-col min-h-0 flex-1 overflow-x-hidden">
           {/* Logo Brand Header */}
           <div className="h-16 flex items-center px-4 border-b border-slate-200 shrink-0 gap-3">
             <div className="flex gap-1 shrink-0">
@@ -285,14 +285,15 @@ export function AppLayout({ user, onLogout, isAdmin }: AppLayoutProps) {
           </div>
 
           {/* Navigation Links List */}
-          <nav className="p-3 space-y-1 overflow-y-auto flex-1">
+          <nav className="p-3 space-y-1 overflow-y-auto overflow-x-hidden flex-1">
             {nav.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
+                end={item.to === "/admin" || item.to === "/dashboard"}
                 className={({ isActive }) =>
                   cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all relative group",
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all relative group overflow-hidden",
                     isActive
                       ? "bg-[#800000] text-white shadow-xs"
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-100",
@@ -303,7 +304,7 @@ export function AppLayout({ user, onLogout, isAdmin }: AppLayoutProps) {
                 <svg className="size-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d={item.icon} />
                 </svg>
-                {!collapsed && <span>{item.label}</span>}
+                {!collapsed && <span className="truncate">{item.label}</span>}
                 {collapsed && (
                   <div className="absolute left-full ml-3 px-2.5 py-1 bg-slate-900 text-white text-xs rounded-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap z-50 shadow-md">
                     {item.label}
@@ -315,10 +316,10 @@ export function AppLayout({ user, onLogout, isAdmin }: AppLayoutProps) {
         </div>
 
         {/* ── Bottom: User Profile Card & Collapse Toggle Button ────────────── */}
-        <div className={cn("border-t border-slate-200 bg-slate-50/70 transition-all duration-300 shrink-0 flex flex-col gap-2", collapsed ? "p-2" : "p-3")}>
+        <div className={cn("border-t border-slate-200 bg-slate-50/70 transition-all duration-300 shrink-0 flex flex-col gap-2 overflow-x-hidden", collapsed ? "p-2" : "p-3")}>
           {collapsed ? (
-            <div className="flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-slate-200 shadow-2xs relative group/user">
-              <div className="size-9 rounded-full bg-[#800000]/10 text-[#800000] font-extrabold text-xs flex items-center justify-center shrink-0 border border-[#800000]/20 overflow-hidden">
+            <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-white border border-slate-200 shadow-2xs relative group/user">
+              <div className="size-9 rounded-full bg-[#800000]/10 text-[#800000] font-black text-xs flex items-center justify-center shrink-0 border border-[#800000]/20 overflow-hidden">
                 {user.profile_photo ? (
                   <img src={user.profile_photo} alt={user.full_name} className="size-full object-cover object-center" />
                 ) : (
@@ -328,14 +329,14 @@ export function AppLayout({ user, onLogout, isAdmin }: AppLayoutProps) {
               {/* Tooltip on user card when collapsed */}
               <div className="absolute left-full ml-3 bottom-0 p-3 bg-slate-900 text-white rounded-xl opacity-0 pointer-events-none group-hover/user:opacity-100 transition-opacity duration-150 whitespace-nowrap z-50 shadow-xl space-y-1">
                 <p className="text-xs font-bold">{user.full_name}</p>
-                {user.student_number && <p className="text-[10px] font-mono text-amber-300 font-bold">{user.student_number}</p>}
+                {user.student_number && user.role !== "admin" && <p className="text-[10px] font-mono text-amber-300 font-bold">{user.student_number}</p>}
                 <p className="text-[10px] text-slate-300">{user.email}</p>
-                <p className="text-[10px] text-amber-300 font-semibold">{isOfficer ? (effectivePosition === "Officer" ? "Officer" : `Officer: ${effectivePosition}`) : user.role === "admin" ? "Admin Staff" : "Member"}</p>
+                <p className="text-[10px] text-amber-300 font-semibold">{isOfficer ? (effectivePosition === "Officer" ? "Officer" : `Officer: ${effectivePosition}`) : user.role === "admin" ? "Administrator" : "Member"}</p>
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white border border-slate-200 shadow-2xs hover:border-slate-300 transition-all">
-              <div className="size-10 rounded-full bg-[#800000]/10 text-[#800000] font-black text-xs flex items-center justify-center shrink-0 border border-[#800000]/20 overflow-hidden shadow-2xs">
+            <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white border border-slate-200 shadow-2xs hover:border-slate-300 transition-all overflow-hidden">
+              <div className="size-9 rounded-full bg-[#800000]/10 text-[#800000] font-black text-xs flex items-center justify-center shrink-0 border border-[#800000]/20 overflow-hidden shadow-2xs">
                 {user.profile_photo ? (
                   <img src={user.profile_photo} alt={user.full_name} className="size-full object-cover object-center" />
                 ) : (
@@ -346,7 +347,7 @@ export function AppLayout({ user, onLogout, isAdmin }: AppLayoutProps) {
                 <p className="text-xs font-black text-slate-900 truncate leading-tight w-full" title={user.full_name}>
                   {user.full_name}
                 </p>
-                <div className="flex items-center gap-1.5 mt-1 text-[10px] truncate w-full">
+                <div className="flex items-center gap-1.5 mt-0.5 text-[10px] truncate w-full">
                   {user.student_number && user.role !== "admin" && (
                     <span className="font-mono font-bold text-slate-600 shrink-0">
                       {user.student_number}
@@ -363,7 +364,7 @@ export function AppLayout({ user, onLogout, isAdmin }: AppLayoutProps) {
                       ? "text-purple-700"
                       : "text-slate-500"
                   )}>
-                    {isOfficer ? (effectivePosition === "Officer" ? "Officer" : effectivePosition) : user.role === "admin" ? "Admin Staff" : "Member"}
+                    {isOfficer ? (effectivePosition === "Officer" ? "Officer" : effectivePosition) : user.role === "admin" ? "Administrator" : "Member"}
                   </span>
                 </div>
               </div>
@@ -373,16 +374,13 @@ export function AppLayout({ user, onLogout, isAdmin }: AppLayoutProps) {
           {/* Collapse Button below profile */}
           <button
             onClick={toggleCollapse}
-            className={cn(
-              "flex items-center justify-center gap-2 py-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 border border-slate-200/80 bg-white transition-all text-xs font-medium cursor-pointer shadow-2xs",
-              collapsed ? "w-full" : "w-full"
-            )}
+            className="flex items-center justify-center gap-2 py-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 border border-slate-200/80 bg-white transition-all text-xs font-medium cursor-pointer shadow-2xs w-full"
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <svg className={cn("size-4 transition-transform duration-300", collapsed && "rotate-180")} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={cn("size-4 transition-transform duration-300 shrink-0", collapsed && "rotate-180")} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
             </svg>
-            {!collapsed && <span className="text-[11px] font-semibold text-slate-600">Collapse</span>}
+            {!collapsed && <span className="text-[11px] font-semibold text-slate-600 whitespace-nowrap">Collapse</span>}
           </button>
         </div>
       </aside>
@@ -404,7 +402,6 @@ export function AppLayout({ user, onLogout, isAdmin }: AppLayoutProps) {
               <p className="text-[11px] text-slate-500">{formatDateTime(time)}</p>
             </div>
           </div>
-
 
           <div className="flex items-center gap-3">
             <NotificationDropdown user={user} isAdmin={isActualAdmin} />
@@ -453,6 +450,7 @@ export function AppLayout({ user, onLogout, isAdmin }: AppLayoutProps) {
                     <NavLink
                       key={item.to}
                       to={item.to}
+                      end={item.to === "/admin" || item.to === "/dashboard"}
                       onClick={() => setMobileMenuOpen(false)}
                       className={({ isActive }) =>
                         cn(
@@ -475,7 +473,7 @@ export function AppLayout({ user, onLogout, isAdmin }: AppLayoutProps) {
               {/* Profile Card at bottom in mobile */}
               <div className="p-3 border-t border-slate-200 bg-slate-50/70">
                 <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white border border-slate-200 shadow-2xs hover:border-slate-300 transition-all">
-                  <div className="size-10 rounded-full bg-[#800000]/10 text-[#800000] font-black text-xs flex items-center justify-center shrink-0 border border-[#800000]/20 overflow-hidden shadow-2xs">
+                  <div className="size-9 rounded-full bg-[#800000]/10 text-[#800000] font-black text-xs flex items-center justify-center shrink-0 border border-[#800000]/20 overflow-hidden shadow-2xs">
                     {user.profile_photo ? (
                       <img src={user.profile_photo} alt={user.full_name} className="size-full object-cover object-center" />
                     ) : (
@@ -486,7 +484,7 @@ export function AppLayout({ user, onLogout, isAdmin }: AppLayoutProps) {
                     <p className="text-xs font-black text-slate-900 truncate leading-tight w-full" title={user.full_name}>
                       {user.full_name}
                     </p>
-                    <div className="flex items-center gap-1.5 mt-1 text-[10px] truncate w-full">
+                    <div className="flex items-center gap-1.5 mt-0.5 text-[10px] truncate w-full">
                       {user.student_number && user.role !== "admin" && (
                         <span className="font-mono font-bold text-slate-600 shrink-0">
                           {user.student_number}
@@ -503,7 +501,7 @@ export function AppLayout({ user, onLogout, isAdmin }: AppLayoutProps) {
                           ? "text-purple-700"
                           : "text-slate-500"
                       )}>
-                        {isOfficer ? (effectivePosition === "Officer" ? "Officer" : effectivePosition) : user.role === "admin" ? "Admin Staff" : "Member"}
+                        {isOfficer ? (effectivePosition === "Officer" ? "Officer" : effectivePosition) : user.role === "admin" ? "Administrator" : "Member"}
                       </span>
                     </div>
                   </div>
